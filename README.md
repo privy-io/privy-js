@@ -30,3 +30,9 @@ const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
 // {"ssn": "123-45-6789"}
 console.log(decryptionResult.getPlaintext('utf8'));
 ```
+
+## Running tests
+
+```
+npm test
+```
