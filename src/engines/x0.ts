@@ -21,11 +21,18 @@ export class EncryptionResult {
   _ciphertext: Buffer;
 
   /**
+   * Wrapper key id buffer
+   * @internal
+   */
+  _wrapperKeyId: Buffer;
+
+  /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Buffer) {
+  constructor(ciphertext: Buffer, wrapperKeyId: Buffer) {
     this._ciphertext = ciphertext;
+    this._wrapperKeyId = wrapperKeyId;
   }
 
   /**
@@ -40,6 +47,21 @@ export class EncryptionResult {
       return this._ciphertext.toString(encoding);
     } else {
       return this._ciphertext;
+    }
+  }
+
+  /**
+   * Returns the wrapper key id.
+   *
+   * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
+   */
+  getWrapperKeyId(): Buffer;
+  getWrapperKeyId(encoding: BufferEncoding): string;
+  getWrapperKeyId(encoding?: BufferEncoding) {
+    if (encoding !== undefined) {
+      return this._wrapperKeyId.toString(encoding);
+    } else {
+      return this._wrapperKeyId;
     }
   }
 }
@@ -161,7 +183,7 @@ export class Encryption {
       );
 
       // 5. Return the encryption result
-      return new EncryptionResult(serialized);
+      return new EncryptionResult(serialized, this._config.wrapperKeyId);
     } catch (error) {
       throw new PrivyCryptoError('Failed to encrypt plaintext', error);
     } finally {

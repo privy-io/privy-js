@@ -31,6 +31,7 @@ test('encrypt and decrypt some data', async () => {
 
   const encryptionResult = await privyEncryption.encrypt();
   const ciphertext = encryptionResult.getCiphertext();
+  expect(encryptionResult.getWrapperKeyId()).toEqual(wrapperKeyId);
 
   const privyDecryption = PrivyCrypto.Decryption(ciphertext);
   expect(privyDecryption.getWrapperKeyId()).toEqual(wrapperKeyId);
