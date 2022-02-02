@@ -9,8 +9,8 @@ const plaintext = Buffer.from('{"ssn": "123-45-6789"}');
 
 // Encryption
 const privyEncryption = PrivyCrypto.Encryption(plaintext, {
-  wrapperKey: publicKey,
-  wrapperKeyId: wrapperKeyId,
+  wrapperKey: wrapperKey, // RSA public key from privy server
+  wrapperKeyId: wrapperKeyId, // Metadata ID of RSA public key from privy server
 });
 const encryptionResult = await privyEncryption.encrypt();
 const ciphertext = encryptionResult.getCiphertext();
