@@ -2,7 +2,7 @@
   "name": "privy-crypto-js",
   "version": "0.0.1-beta1",
   "description": "Privy encryption and decryption library",
-  "main": "index.js",
+  "main": "dist/index.js",
   "files": [
     "dist/**/*"
   ],
