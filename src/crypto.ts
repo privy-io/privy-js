@@ -50,6 +50,15 @@ export function aes256gcmDecrypt(
   return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
 }
 
+/**
+ * This is only used to encrypt the AES secret key so that
+ * the only way to decrypt it is with the RSA private key.
+ * The RSA private key is stored in an HSM and is thus never
+ * exposed to the Privy server or any clients.
+ *
+ * The next iteration of Privy's crypto code will be using ECC
+ * and thus moving away from the less secure RSA+SHA1.
+ */
 export function rsaOaepSha1Encrypt(plaintext: Buffer, publicKey: Buffer): Buffer {
   return webcrypto.publicEncrypt(
     {

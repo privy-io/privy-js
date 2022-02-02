@@ -8,6 +8,7 @@ import {PrivyCryptoError} from '../errors';
 import {bufferFromUInt64, concatBuffers, uint64FromBuffer} from '../buffers';
 import {aes256gcmEncrypt, aes256gcmDecrypt, csprng, rsaOaepSha1Encrypt} from '../crypto';
 
+// NIST recommended lengths
 const IV_LENGTH_IN_BYTES = 12;
 const AUTH_TAG_LENGTH_IN_BYTES = 16;
 const DATA_KEY_LENGTH_IN_BYTES = 32;
@@ -19,6 +20,10 @@ export class EncryptionResult {
    */
   _ciphertext: Buffer;
 
+  /**
+   * Constructor
+   * @internal
+   */
   constructor(ciphertext: Buffer) {
     this._ciphertext = ciphertext;
   }
@@ -168,13 +173,13 @@ export class Encryption {
 
 export class DecryptionResult {
   /**
-   * plaintext buffer
+   * Plaintext buffer
    * @internal
    */
   _plaintext: Buffer;
 
   /**
-   * constructor
+   * Constructor
    * @internal
    */
   constructor(plaintext: Buffer) {
@@ -199,31 +204,31 @@ export class DecryptionResult {
 
 export class Decryption {
   /**
-   * wrapper key id buffer
+   * Wrapper key id buffer
    * @internal
    */
   _wrapperKeyId: Buffer;
 
   /**
-   * encrypted data key buffer
+   * Encrypted data key buffer
    * @internal
    */
   _encryptedDataKey: Buffer;
 
   /**
-   * initialization vector buffer
+   * Initialization vector buffer
    * @internal
    */
   _initializationVector: Buffer;
 
   /**
-   * ciphertext buffer
+   * Ciphertext buffer
    * @internal
    */
   _ciphertext: Buffer;
 
   /**
-   * authentication tag buffer
+   * Authentication tag buffer
    * @internal
    */
   _authenticationTag: Buffer;
