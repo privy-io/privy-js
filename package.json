@@ -33,6 +33,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
+    "events": "3.3.0",
     "webcrypto": "0.1.1"
   }
 }
