@@ -13,7 +13,7 @@ const privyEncryption = PrivyCrypto.Encryption(plaintext, {
   wrapperKeyId: wrapperKeyId, // Metadata ID of RSA public key from privy server
 });
 const encryptionResult = await privyEncryption.encrypt();
-const ciphertext = encryptionResult.getCiphertext();
+const ciphertext = encryptionResult.ciphertext();
 
 // Decryption
 const privyDecryption = PrivyCrypto.Decryption(ciphertext);
@@ -21,14 +21,14 @@ const privyDecryption = PrivyCrypto.Decryption(ciphertext);
 // This is where Privy would decrypt the encrypted data
 // key against the Privy server, ultimately doing so in an HSM.
 const decryptedDataKey = decryptDataKey(
-  privyDecryption.getWrapperKeyId('utf8'),
-  privyDecryption.getEncryptedDataKey('base64')
+  privyDecryption.wrapperKeyId('utf8'),
+  privyDecryption.encryptedDataKey('base64')
 );
 
 const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
 
 // {"ssn": "123-45-6789"}
-console.log(decryptionResult.getPlaintext('utf8'));
+console.log(decryptionResult.plaintext('utf8'));
 ```
 
 ## Running tests
