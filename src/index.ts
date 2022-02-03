@@ -3,6 +3,9 @@ import {Decryption, Encryption, EncryptConfig} from './engines/x0';
 // Expose errors
 export {PrivyCryptoError} from './errors';
 
+// Expose md5 utility
+export {md5Hash} from './crypto';
+
 // Expose encryption and decryption objects for typing
 export {
   Decryption,

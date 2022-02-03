@@ -3,6 +3,18 @@ import * as webcrypto from 'webcrypto';
 const AES_256_GCM = 'aes-256-gcm';
 const SHA1 = 'sha1';
 
+/**
+ * Utility function to create md5 hashes of data.
+ * Useful for hashing encrypted file contents when
+ * uploading to the cloud for integrity checks.
+ *
+ * @param {Buffer} data - Data to hash
+ * @returns {string} Hex representation of md5 hash
+ */
+export function md5Hash(data: Buffer): string {
+  return webcrypto.createHash('md5').update(data).digest('hex');
+}
+
 export function csprng(lengthInBytes: number): Buffer {
   // In node, this will be crypto.randomBytes, which is a CSPRNG.
   //
