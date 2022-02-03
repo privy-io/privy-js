@@ -40,9 +40,9 @@ export class EncryptionResult {
    *
    * @param {BufferEncoding} [encoding] - Optional encoding which converts the ciphertext to a string using the given encoding.
    */
-  getCiphertext(): Buffer;
-  getCiphertext(encoding: BufferEncoding): string;
-  getCiphertext(encoding?: BufferEncoding) {
+  ciphertext(): Buffer;
+  ciphertext(encoding: BufferEncoding): string;
+  ciphertext(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
       return this._ciphertext.toString(encoding);
     } else {
@@ -55,9 +55,9 @@ export class EncryptionResult {
    *
    * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
    */
-  getWrapperKeyId(): Buffer;
-  getWrapperKeyId(encoding: BufferEncoding): string;
-  getWrapperKeyId(encoding?: BufferEncoding) {
+  wrapperKeyId(): Buffer;
+  wrapperKeyId(encoding: BufferEncoding): string;
+  wrapperKeyId(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
       return this._wrapperKeyId.toString(encoding);
     } else {
@@ -213,9 +213,9 @@ export class DecryptionResult {
    *
    * @param {BufferEncoding} [encoding] - Optional encoding which converts the plaintext to a string using the given encoding.
    */
-  getPlaintext(): Buffer;
-  getPlaintext(encoding: BufferEncoding): string;
-  getPlaintext(encoding?: BufferEncoding) {
+  plaintext(): Buffer;
+  plaintext(encoding: BufferEncoding): string;
+  plaintext(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
       return this._plaintext.toString(encoding);
     } else {
@@ -355,9 +355,9 @@ export class Decryption {
    *
    * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
    */
-  getWrapperKeyId(): Buffer;
-  getWrapperKeyId(encoding: BufferEncoding): string;
-  getWrapperKeyId(encoding?: BufferEncoding) {
+  wrapperKeyId(): Buffer;
+  wrapperKeyId(encoding: BufferEncoding): string;
+  wrapperKeyId(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
       return this._wrapperKeyId.toString(encoding);
     } else {
@@ -370,9 +370,9 @@ export class Decryption {
    *
    * @param {BufferEncoding} [encoding] - Optional encoding which converts the encrypted data key to a string using the given encoding.
    */
-  getEncryptedDataKey(): Buffer;
-  getEncryptedDataKey(encoding: BufferEncoding): string;
-  getEncryptedDataKey(encoding?: BufferEncoding) {
+  encryptedDataKey(): Buffer;
+  encryptedDataKey(encoding: BufferEncoding): string;
+  encryptedDataKey(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
       return this._encryptedDataKey.toString(encoding);
     } else {

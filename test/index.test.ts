@@ -30,20 +30,20 @@ test('encrypt and decrypt some data', async () => {
   });
 
   const encryptionResult = await privyEncryption.encrypt();
-  const ciphertext = encryptionResult.getCiphertext();
-  expect(encryptionResult.getWrapperKeyId()).toEqual(wrapperKeyId);
+  const ciphertext = encryptionResult.ciphertext();
+  expect(encryptionResult.wrapperKeyId()).toEqual(wrapperKeyId);
 
   const privyDecryption = PrivyCrypto.Decryption(ciphertext);
-  expect(privyDecryption.getWrapperKeyId()).toEqual(wrapperKeyId);
+  expect(privyDecryption.wrapperKeyId()).toEqual(wrapperKeyId);
 
   const decryptedDataKey = crypto.privateDecrypt(
     {
       key: privateKey,
       oaepHash: 'sha1',
     },
-    privyDecryption.getEncryptedDataKey(),
+    privyDecryption.encryptedDataKey(),
   );
 
   const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
-  expect(decryptionResult.getPlaintext('utf8')).toEqual('{"ssn": "123-45-6789"}');
+  expect(decryptionResult.plaintext('utf8')).toEqual('{"ssn": "123-45-6789"}');
 });
