@@ -39,16 +39,7 @@ export function aes256gcmEncrypt(plaintext: Buffer, dataKey: Buffer, config: AES
   const cipher = webcrypto.createCipheriv(AES_256_GCM, dataKey, initializationVector);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authenticationTag = cipher.getAuthTag();
-
-  if (!authenticationTag || authenticationTag.length !== config.authTagLengthInBytes) {
-    throw new Error('Authentication tag error');
-  }
-
-  return {
-    ciphertext: ciphertext,
-    initializationVector: initializationVector,
-    authenticationTag: authenticationTag,
-  };
+  return {ciphertext, initializationVector, authenticationTag};
 }
 
 export function aes256gcmDecrypt(
