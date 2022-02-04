@@ -1,4 +1,4 @@
-export class PrivyCryptoError extends Error {
+export class CryptoError extends Error {
   /**
    * Original Error object
    */
