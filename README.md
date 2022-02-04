@@ -1,4 +1,4 @@
-# privy-crypto-js
+# @privy-io/crypto
 
 JavaScript library for encrypting and decrypting data with Privy.
 
