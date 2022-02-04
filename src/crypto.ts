@@ -15,6 +15,17 @@ export function md5Hash(data: Buffer): string {
   return webcrypto.createHash('md5').update(data).digest('hex');
 }
 
+// TODO(dave): Make return type consistent with md5Hash.
+/**
+ * Utility function to create SHA256 hashes of data.
+ *
+ * @param {Buffer} data - Data to hash
+ * @returns {Buffer} Buffer containing sha256 hash
+ */
+export function sha256Hash(data: Buffer): Buffer {
+  return webcrypto.createHash('sha256').update(data).digest();
+}
+
 export function csprng(lengthInBytes: number): Buffer {
   // In node, this will be crypto.randomBytes, which is a CSPRNG.
   //
@@ -29,17 +40,11 @@ export function csprng(lengthInBytes: number): Buffer {
   return webcrypto.randomBytes(lengthInBytes);
 }
 
-interface AESEncryptConfig {
-  ivLengthInBytes: number;
-  authTagLengthInBytes: number;
-}
-
-export function aes256gcmEncrypt(plaintext: Buffer, dataKey: Buffer, config: AESEncryptConfig) {
-  const initializationVector = csprng(config.ivLengthInBytes);
+export function aes256gcmEncrypt(plaintext: Buffer, dataKey: Buffer, initializationVector: Buffer) {
   const cipher = webcrypto.createCipheriv(AES_256_GCM, dataKey, initializationVector);
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   const authenticationTag = cipher.getAuthTag();
-  return {ciphertext, initializationVector, authenticationTag};
+  return {ciphertext, authenticationTag};
 }
 
 export function aes256gcmDecrypt(
