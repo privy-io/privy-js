@@ -35,19 +35,19 @@ export class EncryptionResult {
   _wrapperKeyId: Buffer;
 
   /**
-   * Commitment hash containing hash of (nonce || ciphertext).
+   * Hash of (nonce || plaintext) used for content addressing.
    * @internal
    */
-  _commitmentHash: Buffer;
+  _contentHash: Buffer;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Buffer, wrapperKeyId: Buffer, commitmentHash: Buffer) {
+  constructor(ciphertext: Buffer, wrapperKeyId: Buffer, contentHash: Buffer) {
     this._ciphertext = ciphertext;
     this._wrapperKeyId = wrapperKeyId;
-    this._commitmentHash = commitmentHash;
+    this._contentHash = contentHash;
   }
 
   /**
@@ -81,17 +81,17 @@ export class EncryptionResult {
   }
 
   /**
-   * Returns the commitment hash.
+   * Returns the content hash.
    *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
+   * @param {BufferEncoding} [encoding] - Optional encoding which converts the content hash to a string using the given encoding.
    */
-  commitmentHash(): Buffer;
-  commitmentHash(encoding: BufferEncoding): string;
-  commitmentHash(encoding?: BufferEncoding) {
+  contentHash(): Buffer;
+  contentHash(encoding: BufferEncoding): string;
+  contentHash(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
-      return this._commitmentHash.toString(encoding);
+      return this._contentHash.toString(encoding);
     } else {
-      return this._commitmentHash;
+      return this._contentHash;
     }
   }
 }
@@ -130,8 +130,9 @@ export class Encryption {
     this._config = config;
   }
 
-  // TODO(dave): Technically a couple items here aren't nec, spec encryptedDataKeyLengthInBytes,
-  // encryptedNonceLengthInBytes since these lengths are tied to the cryptoVersion.
+  // TODO(dave): Technically encryptedNonceLengthInBytes isn't strictly nec as
+  // this is tied to the cryptoVersion, but currently included for consistency
+  // with encryptedDataKeyLengthInBytes.
   /**
    * Serialize creates a buffer with the following
    * components concatenated together:
@@ -184,7 +185,7 @@ export class Encryption {
    *     1. Generate a secret key (aka data key)
    *     2. Encrypt (AES-256-GCM) plaintext data using data key
    *     3. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
-   *     4. Generate a SHA256 commitment hash of a nonce concatenated with the plaintext.
+   *     4. Generate content hash of a nonce concatenated with the plaintext.
    *     5. Serialize the following components into a single buffer:
    *         * Privy crypto version (0x0001 in this case)
    *         * wrapper key id
@@ -230,11 +231,11 @@ export class Encryption {
         nonceAuthenticationTag,
       );
 
-      // 5. Generate a commitment hash for (nonce || plaintext)
-      const commitmentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
+      // 5. Generate a content hash for (nonce || plaintext)
+      const contentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
 
       // 5. Return the encryption result
-      return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentHash);
+      return new EncryptionResult(serialized, this._config.wrapperKeyId, contentHash);
     } catch (error) {
       throw new PrivyCryptoError('Failed to encrypt plaintext', error);
     } finally {
@@ -422,7 +423,6 @@ export class Decryption {
     offset += AUTH_TAG_LENGTH_IN_BYTES;
 
     // Check if nonce is included (for backwards compatibility) and deserialize if so.
-    // TODO(dave): We may want to cut a new version due to the nonce changes but not strictly nec.
     let encryptedNonce = Buffer.alloc(0);
     let nonceAuthenticationTag = Buffer.alloc(0);
     if (offset < serializedEncryptedData.length) {
