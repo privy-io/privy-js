@@ -2,6 +2,14 @@
 
 JavaScript library for encrypting and decrypting data with Privy.
 
+This library is intended to be used by the privy-js and privy-node libraries to handle all cryptographic operations.
+
+## Installation
+
+```
+npm install --save @privy-io/crypto
+```
+
 ## Usage
 
 ```typescript
