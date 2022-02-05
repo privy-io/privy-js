@@ -1,4 +1,4 @@
-import {PrivyCryptoError} from './errors';
+import {CryptoError} from './errors';
 
 export const CRYPTO_VERSION_LENGTH_IN_BYTES = 2;
 
@@ -20,7 +20,7 @@ export function cryptoVersionFromBuffer(serialized: Buffer): CryptoVersion {
     case CryptoVersion.x0:
       return CryptoVersion.x0;
     default:
-      throw new PrivyCryptoError(`Invalid Privy crypto version: ${version} is not a valid version`);
+      throw new CryptoError(`Invalid Privy crypto version: ${version} is not a valid version`);
   }
 }
 

@@ -4,7 +4,7 @@ import {
   cryptoVersionFromBuffer,
   CRYPTO_VERSION_LENGTH_IN_BYTES,
 } from '../version';
-import {PrivyCryptoError} from '../errors';
+import {CryptoError} from '../errors';
 import {bufferFromUInt64, concatBuffers, uint64FromBuffer} from '../buffers';
 import {
   aes256gcmEncrypt,
@@ -20,6 +20,17 @@ const AUTH_TAG_LENGTH_IN_BYTES = 16;
 const DATA_KEY_LENGTH_IN_BYTES = 32;
 // Nonce to match AES256GCM key length.
 const NONCE_LENGTH_IN_BYTES = 32;
+
+/**
+ * This is only used to encrypt the AES secret key so that
+ * the only way to decrypt it is with the RSA private key.
+ * The RSA private key is stored in an HSM and is thus never
+ * exposed to the Privy server or any clients.
+ *
+ * The next iteration of Privy's crypto code will be using ECC
+ * and thus moving away from the less secure RSA+SHA1.
+ */
+export const WRAPPER_KEY_ALGORITHM = 'RSA_2048';
 
 export class EncryptionResult {
   /**
@@ -237,7 +248,7 @@ export class Encryption {
       // 5. Return the encryption result
       return new EncryptionResult(serialized, this._config.wrapperKeyId, contentHash);
     } catch (error) {
-      throw new PrivyCryptoError('Failed to encrypt plaintext', error);
+      throw new CryptoError('Failed to encrypt plaintext', error);
     } finally {
       // Always clear the secret data key from memory
       dataKey.fill(0);
@@ -337,19 +348,19 @@ export class Decryption {
     } = this._deserializeEncryptedData(serialized);
 
     if (cryptoVersion !== CryptoVersion.x0) {
-      throw new PrivyCryptoError(
+      throw new CryptoError(
         `Invalid PrivyCrypto version for engine: expected ${CryptoVersion.x0} but got ${cryptoVersion}`,
       );
     } else if (initializationVector.length !== IV_LENGTH_IN_BYTES) {
-      throw new PrivyCryptoError(
+      throw new CryptoError(
         `Invalid initialization vector length: expected ${IV_LENGTH_IN_BYTES} but got ${initializationVector.length}`,
       );
     } else if (dataAuthenticationTag.length !== AUTH_TAG_LENGTH_IN_BYTES) {
-      throw new PrivyCryptoError(
+      throw new CryptoError(
         `Invalid authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${dataAuthenticationTag.length}`,
       );
     } else if (nonceAuthenticationTag.length !== AUTH_TAG_LENGTH_IN_BYTES) {
-      throw new PrivyCryptoError(
+      throw new CryptoError(
         `Invalid authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${nonceAuthenticationTag.length}`,
       );
     }
@@ -508,17 +519,17 @@ export class Decryption {
         // Calculate hash.
         const hash = sha256Hash(Buffer.concat([nonce, plaintext]));
         if (!hash.equals(contentHash)) {
-          throw new PrivyCryptoError(
+          throw new CryptoError(
             `Data integrity check failed: expected ${contentHash}, but got ${hash}`,
           );
         }
       }
       return new DecryptionResult(plaintext);
     } catch (error) {
-      if (error instanceof PrivyCryptoError) {
+      if (error instanceof CryptoError) {
         throw error;
       } else {
-        throw new PrivyCryptoError('Failed to decrypt the encrypted data', error);
+        throw new CryptoError('Failed to decrypt the encrypted data', error);
       }
     } finally {
       // Always clear the secret data key from memory
