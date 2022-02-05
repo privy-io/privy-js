@@ -253,17 +253,11 @@ export class DecryptionResult {
   _plaintext: Buffer;
 
   /**
-   * Nonce
-   */
-  nonce: Buffer;
-
-  /**
    * Constructor
    * @internal
    */
-  constructor(plaintext: Buffer, nonce: Buffer) {
+  constructor(plaintext: Buffer) {
     this._plaintext = plaintext;
-    this.nonce = nonce;
   }
 
   /**
@@ -490,27 +484,42 @@ export class Decryption {
    * Decrypts the encrypted data using the given data key.
    *
    * @param {Buffer} dataKey - The secret key used to encrypt the data.
-   * @returns DecryptionResult containing the plaintext data and nonce.
+   * @param {Buffer} contentHash - Optional contentHash used to perform optional data integrity check.
+   * @returns DecryptionResult containing the plaintext data.
    */
-  async decrypt(dataKey: Buffer): Promise<DecryptionResult> {
+  async decrypt(dataKey: Buffer, contentHash?: Buffer): Promise<DecryptionResult> {
     try {
+      // Decrypt plaintext.
       const plaintext = aes256gcmDecrypt(
         this._ciphertext,
         dataKey,
         this._initializationVector,
         this._dataAuthenticationTag,
       );
-
-      const nonce = aes256gcmDecrypt(
-        this._encryptedNonce,
-        dataKey,
-        this._initializationVector,
-        this._nonceAuthenticationTag,
-      );
-
-      return new DecryptionResult(plaintext, nonce);
+      // If contentHash passed in, perform integrity check against the contentHash.
+      if (contentHash) {
+        // Decrypt nonce.
+        const nonce = aes256gcmDecrypt(
+          this._encryptedNonce,
+          dataKey,
+          this._initializationVector,
+          this._nonceAuthenticationTag,
+        );
+        // Calculate hash.
+        const hash = sha256Hash(Buffer.concat([nonce, plaintext]));
+        if (!hash.equals(contentHash)) {
+          throw new PrivyCryptoError(
+            `Data integrity check failed: expected ${contentHash}, but got ${hash}`,
+          );
+        }
+      }
+      return new DecryptionResult(plaintext);
     } catch (error) {
-      throw new PrivyCryptoError('Failed to decrypt the encrypted data', error);
+      if (error instanceof PrivyCryptoError) {
+        throw error;
+      } else {
+        throw new PrivyCryptoError('Failed to decrypt the encrypted data', error);
+      }
     } finally {
       // Always clear the secret data key from memory
       dataKey.fill(0);
