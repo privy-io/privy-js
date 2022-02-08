@@ -38,7 +38,7 @@ describe('x0', () => {
 
     const encryptionResult = await privyEncryption.encrypt();
     const ciphertext = encryptionResult.ciphertext();
-    const contentHash = encryptionResult.contentHash();
+    const contentHash = encryptionResult.contentHash('hex');
     expect(encryptionResult.wrapperKeyId()).toEqual(wrapperKeyId);
 
     const privyDecryption = new x0.Decryption(ciphertext);
@@ -52,7 +52,10 @@ describe('x0', () => {
       privyDecryption.encryptedDataKey(),
     );
 
-    const decryptionResult = await privyDecryption.decrypt(decryptedDataKey, contentHash);
+    const decryptionResult = await privyDecryption.decrypt(
+      decryptedDataKey,
+      Buffer.from(contentHash, 'hex'),
+    );
     expect(decryptionResult.plaintext('utf8')).toEqual('{"ssn": "123-45-6789"}');
   });
 });
