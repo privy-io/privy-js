@@ -8,4 +8,4 @@ export {CryptoVersion} from './version';
 export {CryptoEngine} from './engines';
 
 // Expose md5 utility
-export {md5Hash} from './crypto';
+export {md5Hash, sha256Hash} from './crypto';
