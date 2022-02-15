@@ -182,7 +182,6 @@ export class Encryption {
       bufferFromUInt64(ciphertext.length),
       ciphertext,
       dataAuthenticationTag,
-      bufferFromUInt64(encryptedNonce.length),
       encryptedNonce,
       nonceAuthenticationTag,
     );
@@ -357,11 +356,18 @@ export class Decryption {
       );
     } else if (dataAuthenticationTag.length !== AUTH_TAG_LENGTH_IN_BYTES) {
       throw new CryptoError(
-        `Invalid authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${dataAuthenticationTag.length}`,
+        `Invalid data authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${dataAuthenticationTag.length}`,
       );
-    } else if (nonceAuthenticationTag.length !== AUTH_TAG_LENGTH_IN_BYTES) {
+    } else if (encryptedNonce.length > 0 && encryptedNonce.length !== NONCE_LENGTH_IN_BYTES) {
       throw new CryptoError(
-        `Invalid authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${nonceAuthenticationTag.length}`,
+        `Invalid nonce lengeth: expected ${NONCE_LENGTH_IN_BYTES} but got ${encryptedNonce.length}`,
+      );
+    } else if (
+      nonceAuthenticationTag.length > 0 &&
+      nonceAuthenticationTag.length !== AUTH_TAG_LENGTH_IN_BYTES
+    ) {
+      throw new CryptoError(
+        `Invalid nonce authentication tag length: expected ${AUTH_TAG_LENGTH_IN_BYTES} but got ${nonceAuthenticationTag.length}`,
       );
     }
 
@@ -431,15 +437,9 @@ export class Decryption {
     let encryptedNonce = Buffer.alloc(0);
     let nonceAuthenticationTag = Buffer.alloc(0);
     if (offset < serializedEncryptedData.length) {
-      // Read encrypted nonce length.
-      const [encryptedNonceLength, encryptedNonceOffset] = uint64FromBuffer(
-        serializedEncryptedData,
-        offset,
-      );
       // Read encrypted nonce.
-      offset = encryptedNonceOffset;
-      encryptedNonce = serializedEncryptedData.slice(offset, offset + encryptedNonceLength);
-      offset += encryptedNonceLength;
+      encryptedNonce = serializedEncryptedData.slice(offset, offset + NONCE_LENGTH_IN_BYTES);
+      offset += NONCE_LENGTH_IN_BYTES;
 
       // Read nonce authentication tag.
       nonceAuthenticationTag = serializedEncryptedData.slice(
