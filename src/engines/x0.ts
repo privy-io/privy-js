@@ -19,7 +19,7 @@ const IV_LENGTH_IN_BYTES = 12;
 const AUTH_TAG_LENGTH_IN_BYTES = 16;
 const DATA_KEY_LENGTH_IN_BYTES = 32;
 // Nonce to match AES256GCM key length.
-const NONCE_LENGTH_IN_BYTES = 32;
+const NONCE_LENGTH_IN_BYTES = DATA_KEY_LENGTH_IN_BYTES;
 
 /**
  * This is only used to encrypt the AES secret key so that
@@ -141,9 +141,6 @@ export class Encryption {
     this._config = config;
   }
 
-  // TODO(dave): Technically encryptedNonceLengthInBytes isn't strictly nec as
-  // this is tied to the cryptoVersion, but currently included for consistency
-  // with encryptedDataKeyLengthInBytes.
   /**
    * Serialize creates a buffer with the following
    * components concatenated together:
@@ -157,8 +154,7 @@ export class Encryption {
    *     || encryptedDataLengthInBytes (BigUint64)
    *     || encryptedData (Buffer)
    *     || dataAuthenticationTag (Buffer) (16 bytes)
-   *     || encryptedNonceLengthInBytes (BigUint64)
-   *     || encryptedNonce (Buffer)
+   *     || encryptedNonce (32 bytes)
    *     || nonceAuthenticationTag (Buffer) (16 bytes)
    *
    * @internal
@@ -230,7 +226,7 @@ export class Encryption {
       // 4. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
       const encryptedDataKey = rsaOaepSha1Encrypt(dataKey, this._config.wrapperKey);
 
-      // 5. Serialize the following components into a single buffer
+      // 6. Serialize the following components into a single buffer
       const serialized = this._serialize(
         ciphertext,
         encryptedDataKey,
@@ -241,10 +237,10 @@ export class Encryption {
         nonceAuthenticationTag,
       );
 
-      // 5. Generate a content hash for (nonce || plaintext)
+      // 7. Generate a content hash for (nonce || plaintext)
       const contentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
 
-      // 5. Return the encryption result
+      // 8. Return the encryption result
       return new EncryptionResult(serialized, this._config.wrapperKeyId, contentHash);
     } catch (error) {
       throw new CryptoError('Failed to encrypt plaintext', error);

@@ -35,8 +35,9 @@ export function sha256Hash(data: Buffer, encoding: BufferEncoding): string;
 export function sha256Hash(data: Buffer, encoding?: BufferEncoding) {
   if (encoding) {
     return webcrypto.createHash('sha256').update(data).digest(encoding);
+  } else {
+    return webcrypto.createHash('sha256').update(data).digest();
   }
-  return webcrypto.createHash('sha256').update(data).digest();
 }
 
 export function csprng(lengthInBytes: number): Buffer {
