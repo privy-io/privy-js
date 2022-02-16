@@ -29,60 +29,44 @@ export class EncryptionResult {
    * Ciphertext buffer
    * @internal
    */
-  _ciphertext: Buffer;
+  _ciphertext: Uint8Array;
 
   /**
    * Wrapper key id buffer
    * @internal
    */
-  _wrapperKeyId: Buffer;
+  _wrapperKeyId: Uint8Array;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Buffer, wrapperKeyId: Buffer) {
+  constructor(ciphertext: Uint8Array, wrapperKeyId: Uint8Array) {
     this._ciphertext = ciphertext;
     this._wrapperKeyId = wrapperKeyId;
   }
 
   /**
    * Returns the ciphertext.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the ciphertext to a string using the given encoding.
    */
-  ciphertext(): Buffer;
-  ciphertext(encoding: BufferEncoding): string;
-  ciphertext(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._ciphertext.toString(encoding);
-    } else {
-      return this._ciphertext;
-    }
+  ciphertext(): Uint8Array {
+    return this._ciphertext;
   }
 
   /**
    * Returns the wrapper key id.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
    */
-  wrapperKeyId(): Buffer;
-  wrapperKeyId(encoding: BufferEncoding): string;
-  wrapperKeyId(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._wrapperKeyId.toString(encoding);
-    } else {
-      return this._wrapperKeyId;
-    }
+  wrapperKeyId(): Uint8Array {
+    return this._wrapperKeyId;
   }
 }
 
 export interface EncryptConfig {
   // The wrapper key (RSA public key in PEM format).
-  wrapperKey: Buffer;
+  wrapperKey: string;
 
   // The metadata ID of the RSA public key.
-  wrapperKeyId: Buffer;
+  wrapperKeyId: Uint8Array;
 }
 
 export class Encryption {
@@ -90,7 +74,7 @@ export class Encryption {
    * Plaintext buffer
    * @internal
    */
-  _plaintext: Buffer;
+  _plaintext: Uint8Array;
 
   /**
    * Config object
@@ -101,12 +85,12 @@ export class Encryption {
   /**
    * Instantiates a new Encryption instance.
    *
-   * @param {Buffer} plaintext - The plaintext data to encrypt.
+   * @param plaintext - The plaintext data to encrypt.
    * @param {EncryptConfig} config - An object to configure encryption.
    *   * wrapperKey - (Buffer) The wrapper key (RSA public key in PEM format).
    *   * wrapperKeyId - (Buffer) The metadata ID of the RSA public key.
    */
-  constructor(plaintext: Buffer, config: EncryptConfig) {
+  constructor(plaintext: Uint8Array, config: EncryptConfig) {
     this._plaintext = plaintext;
     this._config = config;
   }
@@ -128,12 +112,12 @@ export class Encryption {
    * @internal
    */
   _serialize(
-    ciphertext: Buffer,
-    encryptedDataKey: Buffer,
-    authenticationTag: Buffer,
-    initializationVector: Buffer,
-    wrapperKeyId: Buffer,
-  ): Buffer {
+    ciphertext: Uint8Array,
+    encryptedDataKey: Uint8Array,
+    authenticationTag: Uint8Array,
+    initializationVector: Uint8Array,
+    wrapperKeyId: Uint8Array,
+  ): Uint8Array {
     return concatBuffers(
       cryptoVersionToBuffer(CryptoVersion.x0),
       bufferFromUInt64(wrapperKeyId.length),
@@ -209,29 +193,21 @@ export class DecryptionResult {
    * Plaintext buffer
    * @internal
    */
-  _plaintext: Buffer;
+  _plaintext: Uint8Array;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(plaintext: Buffer) {
+  constructor(plaintext: Uint8Array) {
     this._plaintext = plaintext;
   }
 
   /**
    * Returns the plaintext.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the plaintext to a string using the given encoding.
    */
-  plaintext(): Buffer;
-  plaintext(encoding: BufferEncoding): string;
-  plaintext(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._plaintext.toString(encoding);
-    } else {
-      return this._plaintext;
-    }
+  plaintext(): Uint8Array {
+    return this._plaintext;
   }
 }
 
@@ -240,38 +216,38 @@ export class Decryption {
    * Wrapper key id buffer
    * @internal
    */
-  _wrapperKeyId: Buffer;
+  _wrapperKeyId: Uint8Array;
 
   /**
    * Encrypted data key buffer
    * @internal
    */
-  _encryptedDataKey: Buffer;
+  _encryptedDataKey: Uint8Array;
 
   /**
    * Initialization vector buffer
    * @internal
    */
-  _initializationVector: Buffer;
+  _initializationVector: Uint8Array;
 
   /**
    * Ciphertext buffer
    * @internal
    */
-  _ciphertext: Buffer;
+  _ciphertext: Uint8Array;
 
   /**
    * Authentication tag buffer
    * @internal
    */
-  _authenticationTag: Buffer;
+  _authenticationTag: Uint8Array;
 
   /**
    * Instantiates a new Decryption instance.
    *
-   * @param {Buffer} serialized - The serialized encrypted data to decrypt.
+   * @param serialized - The serialized encrypted data to decrypt.
    */
-  constructor(serialized: Buffer) {
+  constructor(serialized: Uint8Array) {
     const {
       cryptoVersion,
       wrapperKeyId,
@@ -306,7 +282,7 @@ export class Decryption {
    * Deserialize the encrypted data components
    * @internal
    */
-  _deserializeEncryptedData(serializedEncryptedData: Buffer) {
+  _deserializeEncryptedData(serializedEncryptedData: Uint8Array) {
     const cryptoVersion = cryptoVersionFromBuffer(serializedEncryptedData);
 
     let offset = CRYPTO_VERSION_LENGTH_IN_BYTES;
@@ -363,32 +339,16 @@ export class Decryption {
 
   /**
    * Returns the wrapper key id.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the wrapper key id to a string using the given encoding.
    */
-  wrapperKeyId(): Buffer;
-  wrapperKeyId(encoding: BufferEncoding): string;
-  wrapperKeyId(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._wrapperKeyId.toString(encoding);
-    } else {
-      return this._wrapperKeyId;
-    }
+  wrapperKeyId(): Uint8Array {
+    return this._wrapperKeyId;
   }
 
   /**
    * Returns the encrypted data key.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the encrypted data key to a string using the given encoding.
    */
-  encryptedDataKey(): Buffer;
-  encryptedDataKey(encoding: BufferEncoding): string;
-  encryptedDataKey(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._encryptedDataKey.toString(encoding);
-    } else {
-      return this._encryptedDataKey;
-    }
+  encryptedDataKey(): Uint8Array {
+    return this._encryptedDataKey;
   }
 
   /**
@@ -397,7 +357,7 @@ export class Decryption {
    * @param {Buffer} dataKey - The secret key used to encrypt the data.
    * @returns DecryptionResult containing the plaintext data
    */
-  async decrypt(dataKey: Buffer): Promise<DecryptionResult> {
+  async decrypt(dataKey: Uint8Array): Promise<DecryptionResult> {
     try {
       const plaintext = aes256gcmDecrypt(
         this._ciphertext,

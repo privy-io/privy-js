@@ -1,5 +1,5 @@
 // Concatenate Buffers (compatible with TypedArrays and DataViews)
-export const concatBuffers = (...inBuffers: ArrayBufferView[]): Buffer => {
+export const concatBuffers = (...inBuffers: ArrayBufferView[]): Uint8Array => {
   // Allocate byte array equal to the cumulative size of input buffers.
   const concatBufLength: number = inBuffers.reduce(
     (sumLength, buff) => sumLength + buff.byteLength,
@@ -20,7 +20,7 @@ export const concatBuffers = (...inBuffers: ArrayBufferView[]): Buffer => {
     offset += buf.byteLength;
   });
 
-  return Buffer.from(concatBuf);
+  return concatBuf;
 };
 
 // Constants storing the size of a uint64 value.
@@ -29,22 +29,22 @@ const BITS_PER_BYTE = 8;
 const UINT64_SIZE_BITS = UINT64_SIZE_BYTES * BITS_PER_BYTE;
 
 // Returns an 8-byte buffer representing a uint64 value.
-export const bufferFromUInt64 = (uint64Value: number): Buffer => {
+export const bufferFromUInt64 = (uint64Value: number): Uint8Array => {
   const uint64Buf = new ArrayBuffer(UINT64_SIZE_BYTES);
   const uint64DataView = new DataView(uint64Buf);
 
   // We write the value into into the buffer in big-endian format. This is architecture-agnostic
   // and just means we have to read the data back in the same format.
   uint64DataView.setBigUint64(0, BigInt(uint64Value), false); // Big endian.
-  return Buffer.from(uint64DataView.buffer);
+  return new Uint8Array(uint64Buf);
 };
 
 // Reads a uint64 integer value from the buffer, starting at the given offset.
 // Returns the (uint64Value, endOffset) as a tuple.
-export const uint64FromBuffer = (inputBuffer: Buffer, startOffset: number): [number, number] => {
+export const uint64FromBuffer = (input: Uint8Array, startOffset: number): [number, number] => {
   // Create a new buffer containing a copy of the bytes to read.
   const endOffset = startOffset + UINT64_SIZE_BYTES;
-  const uint64Buf = inputBuffer.slice(startOffset, endOffset);
+  const uint64Buf = input.slice(startOffset, endOffset);
   const uint64DataView = new DataView(uint64Buf.buffer, uint64Buf.byteOffset, UINT64_SIZE_BYTES);
 
   // Read the integer from the buffer in big-endian because that is the format used to write it.

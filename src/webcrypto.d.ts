@@ -1,1 +1,3 @@
-declare module 'webcrypto';
+declare module 'webcrypto' {
+  export * from 'node:crypto';
+}
