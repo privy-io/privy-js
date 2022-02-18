@@ -1,84 +1,84 @@
-import * as webcrypto from 'webcrypto';
-import {concatBuffers} from './buffers';
+import {CryptoError} from './errors';
+import {crypto} from './webcrypto';
 
-const AES_256_GCM = 'aes-256-gcm';
-const SHA1 = 'sha1';
+// https://developer.mozilla.org/en-US/docs/Web/API/AesKeyGenParams
+// https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
+const AES_GCM = 'AES-GCM';
+const AES_KEY_LENGTH_256_BITS = 256;
+const IV_LENGTH_12_BYTES = 12;
+const AUTH_TAG_LENGTH_128_BITS = 128;
 
-/**
- * Utility function to create md5 hashes of data.
- * Useful for hashing encrypted file contents when
- * uploading to the cloud for integrity checks.
- *
- * @param {Buffer} data - Data to hash
- * @returns {string} Hex representation of md5 hash
- */
-export function md5Hash(data: Uint8Array): string {
-  // In the browser, createHash uses the hash-base library, which uses Buffer.isBuffer() to check for a _isBuffer prop.
-  // But it doesn't actually use any of the extra methods in Buffer.
-  // https://github.com/crypto-browserify/hash-base/blob/master/index.js#L7
-  // TODO: This is a hack and we should use a different library.
-  const buffer = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-  (buffer as any)._isBuffer = true;
-  return webcrypto.createHash('md5').update(buffer).digest('hex');
+// https://developer.mozilla.org/en-US/docs/Web/API/RsaHashedKeyGenParams
+const RSA_OAEP = 'RSA-OAEP';
+const RSA_OAEP_MODULUS_LENGTH_2048_BITS = 2048;
+const RSA_OAEP_PUBLIC_EXPONENT = new Uint8Array([0x01, 0x00, 0x01]);
+const SHA1 = 'SHA-1';
+
+export function csprng(byteLength: number): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(byteLength));
 }
 
-export function csprng(lengthInBytes: number): Uint8Array {
-  // In node, this will be crypto.randomBytes, which is a CSPRNG.
-  //
-  //     https://nodejs.org/api/crypto.html#cryptorandombytessize-callback
-  //
-  // In the browser, this will be crypto.getRandomValues, which
-  // MDN recommends against using to generate keys, preferring
-  // instead to use SubtleCrypto.generateKey.
-  //
-  //     https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
-  //
-  return webcrypto.randomBytes(lengthInBytes);
-}
-
-interface AESEncryptConfig {
-  ivLengthInBytes: number;
-  authTagLengthInBytes: number;
-}
-
-export function aes256gcmEncrypt(
-  plaintext: Uint8Array,
-  dataKey: Uint8Array,
-  config: AESEncryptConfig,
-): {ciphertext: Uint8Array; initializationVector: Uint8Array; authenticationTag: Uint8Array} {
-  const initializationVector = csprng(config.ivLengthInBytes);
-  const cipher = webcrypto.createCipheriv(AES_256_GCM, dataKey, initializationVector);
-  const ciphertext = concatBuffers(cipher.update(plaintext), cipher.final());
-  const authenticationTag = cipher.getAuthTag();
-  return {ciphertext, initializationVector, authenticationTag};
-}
-
-export function aes256gcmDecrypt(
-  ciphertext: Uint8Array,
-  dataKey: Uint8Array,
-  initializationVector: Uint8Array,
-  authenticationTag: Uint8Array,
-): Uint8Array {
-  const decipher = webcrypto.createDecipheriv(AES_256_GCM, dataKey, initializationVector);
-  decipher.setAuthTag(authenticationTag);
-  return concatBuffers(decipher.update(ciphertext), decipher.final());
-}
-
-/**
- * This is only used to encrypt the AES secret key so that
- * the only way to decrypt it is with the RSA private key.
- * The RSA private key is stored in an HSM and is thus never
- * exposed to the Privy server or any clients.
- *
- * The next iteration of Privy's crypto code will be using ECC
- * and thus moving away from the less secure RSA+SHA1.
- */
-export function rsaOaepSha1Encrypt(plaintext: Uint8Array, publicKey: string): Uint8Array {
-  return webcrypto.publicEncrypt(
+export function generateAESGCMEncryptionKey(): Promise<CryptoKey> {
+  return crypto.subtle.generateKey(
     {
-      key: publicKey,
-      oaepHash: SHA1,
+      name: AES_GCM,
+      length: AES_KEY_LENGTH_256_BITS,
     },
-    plaintext,
+    true,
+    ['encrypt'],
   );
+}
+
+export function generateAESGCMInitializationVector(): Uint8Array {
+  return csprng(IV_LENGTH_12_BYTES);
+}
+
+export function importAESGCMDecryptionKey(key: BufferSource): Promise<CryptoKey> {
+  const bitLength = key.byteLength * 8;
+
+  if (bitLength !== AES_KEY_LENGTH_256_BITS) {
+    throw new CryptoError(`key must be 256 bits but was ${bitLength}`);
+  }
+
+  return crypto.subtle.importKey('raw', key, AES_GCM, false, ['decrypt']);
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
+function aesGCMParams(iv: BufferSource): AesGcmParams {
+  return {
+    iv: iv,
+    name: AES_GCM,
+    tagLength: AUTH_TAG_LENGTH_128_BITS,
+  };
+}
+
+export function aesGCMEncrypt(
+  pt: BufferSource,
+  iv: BufferSource,
+  key: CryptoKey,
+): Promise<ArrayBuffer> {
+  return crypto.subtle.encrypt(aesGCMParams(iv), key, pt);
+}
+
+export function aesGCMDecrypt(
+  ct: BufferSource,
+  iv: BufferSource,
+  key: CryptoKey,
+): Promise<ArrayBuffer> {
+  return crypto.subtle.decrypt(aesGCMParams(iv), key, ct);
+}
+
+export function importRSAOAEPEncryptionKey(key: BufferSource) {
+  const algorithm: RsaHashedKeyGenParams = {
+    name: RSA_OAEP,
+    hash: SHA1,
+    modulusLength: RSA_OAEP_MODULUS_LENGTH_2048_BITS,
+    publicExponent: RSA_OAEP_PUBLIC_EXPONENT,
+  };
+
+  return crypto.subtle.importKey('raw', key, algorithm, false, ['encrypt']);
+}
+
+export function rsaOaepEncrypt(pt: BufferSource, key: CryptoKey): Promise<ArrayBuffer> {
+  return crypto.subtle.encrypt({name: RSA_OAEP}, key, pt);
 }

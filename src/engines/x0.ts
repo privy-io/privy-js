@@ -6,12 +6,19 @@ import {
 } from '../version';
 import {CryptoError} from '../errors';
 import {bufferFromUInt64, concatBuffers, uint64FromBuffer} from '../buffers';
-import {aes256gcmEncrypt, aes256gcmDecrypt, csprng, rsaOaepSha1Encrypt} from '../crypto';
+import {
+  aesGCMEncrypt,
+  aesGCMDecrypt,
+  csprng,
+  generateAESGCMEncryptionKey,
+  importRSAOAEPEncryptionKey,
+  rsaOaepEncrypt,
+  generateAESGCMInitializationVector,
+} from '../crypto';
 
 // NIST recommended lengths
 const IV_LENGTH_IN_BYTES = 12;
 const AUTH_TAG_LENGTH_IN_BYTES = 16;
-const DATA_KEY_LENGTH_IN_BYTES = 32;
 
 /**
  * This is only used to encrypt the AES secret key so that
@@ -114,20 +121,18 @@ export class Encryption {
   _serialize(
     ciphertext: Uint8Array,
     encryptedDataKey: Uint8Array,
-    authenticationTag: Uint8Array,
     initializationVector: Uint8Array,
     wrapperKeyId: Uint8Array,
   ): Uint8Array {
     return concatBuffers(
       cryptoVersionToBuffer(CryptoVersion.x0),
-      bufferFromUInt64(wrapperKeyId.length),
+      bufferFromUInt64(wrapperKeyId.byteLength),
       wrapperKeyId,
-      bufferFromUInt64(encryptedDataKey.length),
+      bufferFromUInt64(encryptedDataKey.byteLength),
       encryptedDataKey,
       initializationVector,
-      bufferFromUInt64(ciphertext.length),
+      bufferFromUInt64(ciphertext.byteLength - AUTH_TAG_LENGTH_IN_BYTES),
       ciphertext,
-      authenticationTag,
     );
   }
 
@@ -151,28 +156,24 @@ export class Encryption {
    * @returns a Promise that resolves to an EncryptionResult
    */
   async encrypt(): Promise<EncryptionResult> {
-    // 1. Generate a single-use secret key (aka, data key)
-    const dataKey = csprng(DATA_KEY_LENGTH_IN_BYTES);
-
     try {
+      // 1. Generate a single-use secret key (aka, data key) and initialization vector
+      const dataKey = await generateAESGCMEncryptionKey();
+      const initializationVector = generateAESGCMInitializationVector();
+
       // 2. Encrypt (AES-256-GCM) plaintext data using data key
-      const {ciphertext, initializationVector, authenticationTag} = aes256gcmEncrypt(
-        this._plaintext,
-        dataKey,
-        {
-          ivLengthInBytes: IV_LENGTH_IN_BYTES,
-          authTagLengthInBytes: AUTH_TAG_LENGTH_IN_BYTES,
-        },
-      );
+      const ciphertext = await aesGCMEncrypt(this._plaintext, initializationVector, dataKey);
 
       // 3. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
-      const encryptedDataKey = rsaOaepSha1Encrypt(dataKey, this._config.wrapperKey);
+      const wrapperKeyTypedArray = new TextEncoder().encode(this._config.wrapperKey);
+      const wrapperKey = await importRSAOAEPEncryptionKey(wrapperKeyTypedArray);
+      const dataKeyArrayBuffer = await crypto.subtle.exportKey('raw', dataKey);
+      const encryptedDataKey = await rsaOaepEncrypt(dataKeyArrayBuffer, wrapperKey);
 
       // 4. Serialize the following components into a single buffer
       const serialized = this._serialize(
         ciphertext,
         encryptedDataKey,
-        authenticationTag,
         initializationVector,
         this._config.wrapperKeyId,
       );
@@ -181,9 +182,6 @@ export class Encryption {
       return new EncryptionResult(serialized, this._config.wrapperKeyId);
     } catch (error) {
       throw new CryptoError('Failed to encrypt plaintext', error);
-    } finally {
-      // Always clear the secret data key from memory
-      dataKey.fill(0);
     }
   }
 }
