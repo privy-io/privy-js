@@ -49,16 +49,16 @@ export class EncryptionResult {
    * Hash of (nonce || plaintext) used for content addressing.
    * @internal
    */
-  _contentHash: Buffer;
+  _commitmentHash: Buffer;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Buffer, wrapperKeyId: Buffer, contentHash: Buffer) {
+  constructor(ciphertext: Buffer, wrapperKeyId: Buffer, commitmentHash: Buffer) {
     this._ciphertext = ciphertext;
     this._wrapperKeyId = wrapperKeyId;
-    this._contentHash = contentHash;
+    this._commitmentHash = commitmentHash;
   }
 
   /**
@@ -92,17 +92,17 @@ export class EncryptionResult {
   }
 
   /**
-   * Returns the content hash.
+   * Returns the commitment hash.
    *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the content hash to a string using the given encoding.
+   * @param {BufferEncoding} [encoding] - Optional encoding which converts the commitment hash to a string using the given encoding.
    */
-  contentHash(): Buffer;
-  contentHash(encoding: BufferEncoding): string;
-  contentHash(encoding?: BufferEncoding) {
+  commitmentHash(): Buffer;
+  commitmentHash(encoding: BufferEncoding): string;
+  commitmentHash(encoding?: BufferEncoding) {
     if (encoding !== undefined) {
-      return this._contentHash.toString(encoding);
+      return this._commitmentHash.toString(encoding);
     } else {
-      return this._contentHash;
+      return this._commitmentHash;
     }
   }
 }
@@ -191,7 +191,7 @@ export class Encryption {
    *     1. Generate a secret key (aka data key)
    *     2. Encrypt (AES-256-GCM) plaintext data using data key
    *     3. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
-   *     4. Generate content hash of a nonce concatenated with the plaintext.
+   *     4. Generate commitment hash of a nonce concatenated with the plaintext.
    *     5. Serialize the following components into a single buffer:
    *         * Privy crypto version (0x0001 in this case)
    *         * wrapper key id
@@ -237,11 +237,11 @@ export class Encryption {
         nonceAuthenticationTag,
       );
 
-      // 7. Generate a content hash for (nonce || plaintext)
-      const contentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
+      // 7. Generate a commitment hash for (nonce || plaintext)
+      const commitmentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
 
       // 8. Return the encryption result
-      return new EncryptionResult(serialized, this._config.wrapperKeyId, contentHash);
+      return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentHash);
     } catch (error) {
       throw new CryptoError('Failed to encrypt plaintext', error);
     } finally {
@@ -491,10 +491,10 @@ export class Decryption {
    * Decrypts the encrypted data using the given data key.
    *
    * @param {Buffer} dataKey - The secret key used to encrypt the data.
-   * @param {Buffer} contentHash - Optional contentHash used to perform optional data integrity check.
+   * @param {Buffer} commitmentHash - Optional commitmentHash used to perform optional data integrity check.
    * @returns DecryptionResult containing the plaintext data.
    */
-  async decrypt(dataKey: Buffer, contentHash?: Buffer): Promise<DecryptionResult> {
+  async decrypt(dataKey: Buffer, commitmentHash?: Buffer): Promise<DecryptionResult> {
     try {
       // Decrypt plaintext.
       const plaintext = aes256gcmDecrypt(
@@ -503,8 +503,8 @@ export class Decryption {
         this._initializationVector,
         this._dataAuthenticationTag,
       );
-      // If contentHash passed in, perform integrity check against the contentHash.
-      if (contentHash) {
+      // If commitmentHash passed in, perform integrity check against the commitmentHash.
+      if (commitmentHash) {
         // Decrypt nonce.
         const nonce = aes256gcmDecrypt(
           this._encryptedNonce,
@@ -514,9 +514,9 @@ export class Decryption {
         );
         // Calculate hash.
         const hash = sha256Hash(Buffer.concat([nonce, plaintext]));
-        if (!hash.equals(contentHash)) {
+        if (!hash.equals(commitmentHash)) {
           throw new CryptoError(
-            `Data integrity check failed: expected ${contentHash}, but got ${hash}`,
+            `Data integrity check failed: expected ${commitmentHash}, but got ${hash}`,
           );
         }
       }
