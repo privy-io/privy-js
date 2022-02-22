@@ -5,7 +5,7 @@ import {
   CRYPTO_VERSION_LENGTH_IN_BYTES,
 } from '../version';
 import {CryptoError} from '../errors';
-import {bufferFromUInt64, concatBuffers, uint64FromBuffer} from '../buffers';
+import {bufferFromUInt64, buffersEqual, concatBuffers, uint64FromBuffer} from '../buffers';
 import {
   aes256gcmEncrypt,
   aes256gcmDecrypt,
@@ -49,13 +49,13 @@ export class EncryptionResult {
    * Hash of (nonce || plaintext) used for content addressing.
    * @internal
    */
-  _commitmentHash: Buffer;
+  _commitmentHash: Uint8Array;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Buffer, wrapperKeyId: Buffer, commitmentHash: Buffer) {
+  constructor(ciphertext: Uint8Array, wrapperKeyId: Uint8Array, commitmentHash: Uint8Array) {
     this._ciphertext = ciphertext;
     this._wrapperKeyId = wrapperKeyId;
     this._commitmentHash = commitmentHash;
@@ -77,17 +77,9 @@ export class EncryptionResult {
 
   /**
    * Returns the commitment hash.
-   *
-   * @param {BufferEncoding} [encoding] - Optional encoding which converts the commitment hash to a string using the given encoding.
    */
-  commitmentHash(): Buffer;
-  commitmentHash(encoding: BufferEncoding): string;
-  commitmentHash(encoding?: BufferEncoding) {
-    if (encoding !== undefined) {
-      return this._commitmentHash.toString(encoding);
-    } else {
-      return this._commitmentHash;
-    }
+  commitmentHash(): Uint8Array {
+    return this._commitmentHash;
   }
 }
 
@@ -144,14 +136,14 @@ export class Encryption {
    * @internal
    */
   _serialize(
-    ciphertext: Buffer,
-    encryptedDataKey: Buffer,
-    dataAuthenticationTag: Buffer,
-    initializationVector: Buffer,
-    wrapperKeyId: Buffer,
-    encryptedNonce: Buffer,
-    nonceAuthenticationTag: Buffer,
-  ): Buffer {
+    ciphertext: Uint8Array,
+    encryptedDataKey: Uint8Array,
+    dataAuthenticationTag: Uint8Array,
+    initializationVector: Uint8Array,
+    wrapperKeyId: Uint8Array,
+    encryptedNonce: Uint8Array,
+    nonceAuthenticationTag: Uint8Array,
+  ): Uint8Array {
     return concatBuffers(
       cryptoVersionToBuffer(CryptoVersion.x0),
       bufferFromUInt64(wrapperKeyId.length),
@@ -222,7 +214,7 @@ export class Encryption {
       );
 
       // 7. Generate a commitment hash for (nonce || plaintext)
-      const commitmentHash = sha256Hash(Buffer.concat([nonce, this._plaintext]));
+      const commitmentHash = sha256Hash(concatBuffers(nonce, this._plaintext));
 
       // 8. Return the encryption result
       return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentHash);
@@ -287,13 +279,13 @@ export class Decryption {
    * Authentication tag for the ciphertext.
    * @internal
    */
-  _dataAuthenticationTag: Buffer;
+  _dataAuthenticationTag: Uint8Array;
 
   /**
    * Encrypted nonce buffer
    * @internal
    */
-  _encryptedNonce: Buffer;
+  _encryptedNonce: Uint8Array;
 
   /**
    * Authentication tag for the nonce.
@@ -406,8 +398,8 @@ export class Decryption {
     offset += AUTH_TAG_LENGTH_IN_BYTES;
 
     // Check if nonce is included (for backwards compatibility) and deserialize if so.
-    let encryptedNonce = Buffer.alloc(0);
-    let nonceAuthenticationTag = Buffer.alloc(0);
+    let encryptedNonce = new Uint8Array(0);
+    let nonceAuthenticationTag = new Uint8Array(0);
     if (offset < serializedEncryptedData.length) {
       // Read encrypted nonce.
       encryptedNonce = serializedEncryptedData.slice(offset, offset + NONCE_LENGTH_IN_BYTES);
@@ -450,11 +442,11 @@ export class Decryption {
   /**
    * Decrypts the encrypted data using the given data key.
    *
-   * @param {Buffer} dataKey - The secret key used to encrypt the data.
-   * @param {Buffer} commitmentHash - Optional commitmentHash used to perform optional data integrity check.
+   * @param {Uint8Array} dataKey - The secret key used to encrypt the data.
+   * @param {Uint8Array} commitmentHash - Optional commitmentHash used to perform optional data integrity check.
    * @returns DecryptionResult containing the plaintext data.
    */
-  async decrypt(dataKey: Buffer, commitmentHash?: Buffer): Promise<DecryptionResult> {
+  async decrypt(dataKey: Uint8Array, commitmentHash?: Uint8Array): Promise<DecryptionResult> {
     try {
       // Decrypt plaintext.
       const plaintext = aes256gcmDecrypt(
@@ -473,8 +465,8 @@ export class Decryption {
           this._nonceAuthenticationTag,
         );
         // Calculate hash.
-        const hash = sha256Hash(Buffer.concat([nonce, plaintext]));
-        if (!hash.equals(commitmentHash)) {
+        const hash = sha256Hash(concatBuffers(nonce, plaintext));
+        if (!buffersEqual(hash, commitmentHash)) {
           throw new CryptoError(
             `Data integrity check failed: expected ${commitmentHash}, but got ${hash}`,
           );

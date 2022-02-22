@@ -54,3 +54,10 @@ export const uint64FromBuffer = (input: Uint8Array, startOffset: number): [numbe
   );
   return [uint64Value, endOffset];
 };
+
+/**
+ * Checks whether the two Uint8Arrays contain the same data. (same length and same bytes)
+ */
+export const buffersEqual = (a: Uint8Array, b: Uint8Array): boolean => {
+  return a.byteLength === b.byteLength && a.every((byte, i) => byte === b[i]);
+};

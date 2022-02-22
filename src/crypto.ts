@@ -9,10 +9,8 @@ const SHA1 = 'sha1';
  * NOTE: This is not a cryptographic hash; Useful for obtaining the hexstring hash of
  * encrypted file contents when uploading to the cloud for integrity checks.
  *
- * @param {Buffer} data - Data to hash
- * @param {BufferEncoding} encoding - Optional param to define the string encoding of output. (Ex: 'hex')
- * @returns {Buffer | BufferEncoding} The hash encoded with the given encoding. If no encoding given,
- * the binary buffer is returned.
+ * @param {Uint8Array} data - Data to hash
+ * @returns {Uint8Array} Binary hash
  */
 export function md5Hash(data: Uint8Array): string {
   // In the browser, createHash uses the hash-base library, which uses Buffer.isBuffer() to check for a _isBuffer prop.
@@ -27,19 +25,11 @@ export function md5Hash(data: Uint8Array): string {
 /**
  * Utility function to create SHA256 hashes of data.
  *
- * @param {Buffer} data - Data to hash
- * @param {BufferEncoding} encoding - Optional param to define the string encoding of output. (Ex: 'hex')
- * @returns {Buffer | string} The hash encoded with the given encoding. If no encoding given,
- * the binary buffer is returned.
+ * @param {Uint8Array} data - Data to hash
+ * @returns {Uint8Array} Binary hash
  */
-export function sha256Hash(data: Buffer): Buffer;
-export function sha256Hash(data: Buffer, encoding: BufferEncoding): string;
-export function sha256Hash(data: Buffer, encoding?: BufferEncoding) {
-  if (encoding) {
-    return webcrypto.createHash('sha256').update(data).digest(encoding);
-  } else {
-    return webcrypto.createHash('sha256').update(data).digest();
-  }
+export function sha256Hash(data: Uint8Array): Uint8Array {
+  return webcrypto.createHash('sha256').update(data).digest();
 }
 
 export function csprng(lengthInBytes: number): Uint8Array {
@@ -56,7 +46,11 @@ export function csprng(lengthInBytes: number): Uint8Array {
   return webcrypto.randomBytes(lengthInBytes);
 }
 
-export function aes256gcmEncrypt(plaintext: Buffer, dataKey: Buffer, initializationVector: Buffer) {
+export function aes256gcmEncrypt(
+  plaintext: Uint8Array,
+  dataKey: Uint8Array,
+  initializationVector: Uint8Array,
+) {
   const cipher = webcrypto.createCipheriv(AES_256_GCM, dataKey, initializationVector);
   const ciphertext = concatBuffers(cipher.update(plaintext), cipher.final());
   const authenticationTag = cipher.getAuthTag();
