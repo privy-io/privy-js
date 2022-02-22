@@ -5,4 +5,3 @@ const isNodeProcess = !!(
 );
 
 export const isNode = isNodeProcess;
-export const isBrowser = !isNodeProcess;
