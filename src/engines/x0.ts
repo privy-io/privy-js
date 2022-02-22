@@ -109,8 +109,8 @@ export class Encryption {
    *
    * @param plaintext - The plaintext data to encrypt.
    * @param {EncryptConfig} config - An object to configure encryption.
-   *   * wrapperKey - (Buffer) The wrapper key (RSA public key in PEM format).
-   *   * wrapperKeyId - (Buffer) The metadata ID of the RSA public key.
+   *   * wrapperKey - (string) The wrapper key (RSA public key in PEM format).
+   *   * wrapperKeyId - (Uint8Array) The metadata ID of the RSA public key.
    */
   constructor(plaintext: Uint8Array, config: EncryptConfig) {
     this._plaintext = plaintext;
@@ -123,15 +123,15 @@ export class Encryption {
    *
    *     cryptoVersionBuf (UInt16BE)
    *     || wrapperKeyIdLengthInBytes (BigUint64)
-   *     || wrapperKeyId (Buffer)
+   *     || wrapperKeyId (Uint8Array)
    *     || encryptedDataKeyLengthInBytes (BigUint64)
-   *     || encryptedDataKey (Buffer)
-   *     || initializationVector (buffer) (12 bytes)
+   *     || encryptedDataKey (Uint8Array)
+   *     || initializationVector (Uint8Array) (12 bytes)
    *     || encryptedDataLengthInBytes (BigUint64)
-   *     || encryptedData (Buffer)
-   *     || dataAuthenticationTag (Buffer) (16 bytes)
+   *     || encryptedData (Uint8Array)
+   *     || dataAuthenticationTag (Uint8Array) (16 bytes)
    *     || encryptedNonce (32 bytes)
-   *     || nonceAuthenticationTag (Buffer) (16 bytes)
+   *     || nonceAuthenticationTag (Uint8Array) (16 bytes)
    *
    * @internal
    */
