@@ -12,9 +12,13 @@ export enum CryptoVersion {
   x0 = 0x0000,
 }
 
-export function cryptoVersionFromBuffer(serialized: Buffer): CryptoVersion {
-  const versionBuffer = serialized.slice(0, CRYPTO_VERSION_LENGTH_IN_BYTES);
-  const version = versionBuffer.readUInt16BE();
+export function cryptoVersionFromBuffer(serialized: Uint8Array): CryptoVersion {
+  const versionDataView = new DataView(
+    serialized.buffer,
+    serialized.byteOffset,
+    serialized.byteLength,
+  );
+  const version = versionDataView.getUint16(0, false); // Big endian.
 
   switch (version) {
     case CryptoVersion.x0:
@@ -24,8 +28,8 @@ export function cryptoVersionFromBuffer(serialized: Buffer): CryptoVersion {
   }
 }
 
-export function cryptoVersionToBuffer(version: CryptoVersion): Buffer {
-  const cryptoVersionBuffer = Buffer.alloc(CRYPTO_VERSION_LENGTH_IN_BYTES);
-  cryptoVersionBuffer.writeUInt16BE(version);
-  return cryptoVersionBuffer;
+export function cryptoVersionToBuffer(version: CryptoVersion): Uint8Array {
+  const cryptoVersionBuffer = new ArrayBuffer(CRYPTO_VERSION_LENGTH_IN_BYTES);
+  new DataView(cryptoVersionBuffer).setUint16(0, version, false); // Big endian.
+  return new Uint8Array(cryptoVersionBuffer);
 }
