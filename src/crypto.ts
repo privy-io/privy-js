@@ -24,8 +24,9 @@ const WRAP_KEY_ONLY: KeyUsage[] = ['wrapKey'];
 // https://developer.mozilla.org/en-US/docs/Web/API/AesKeyGenParams
 // https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
 const AES_GCM = 'AES-GCM';
-const AES_KEY_LENGTH_256_BITS = 256;
-const AUTH_TAG_LENGTH_128_BITS = 128;
+const AES_KEY_LENGTH_32_BYTES = 32;
+const AES_KEY_LENGTH_256_BITS = AES_KEY_LENGTH_32_BYTES * 8;
+const AUTH_TAG_LENGTH_128_BITS = AUTH_TAG_LENGTH_16_BYTES * 8;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/RsaHashedKeyGenParams
 const RSA_OAEP = 'RSA-OAEP';
@@ -78,8 +79,6 @@ export function generateAESGCMEncryptionKey(): Promise<CryptoKey> {
  * @returns {Promise<CryptoKey>} promise resolving to the imported CryptoKey
  */
 export function importAESGCMDecryptionKey(key: BufferSource): Promise<CryptoKey> {
-  const AES_KEY_LENGTH_32_BYTES = 32;
-
   if (key.byteLength !== AES_KEY_LENGTH_32_BYTES) {
     throw new CryptoError(`key must be 32 bytes but was ${key.byteLength} bytes`);
   }
