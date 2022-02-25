@@ -108,7 +108,7 @@ export class Encryption {
    *
    * @param plaintext - The plaintext data to encrypt.
    * @param {EncryptConfig} config - An object to configure encryption.
-   *   * wrapperKey - (string) The wrapper key (RSA public key in PEM format).
+   *   * wrapperKey - (Uint8Array) The wrapper key (RSA public key in DER format).
    *   * wrapperKeyId - (Uint8Array) The metadata ID of the RSA public key.
    */
   constructor(plaintext: Uint8Array, config: EncryptConfig) {
@@ -188,7 +188,7 @@ export class Encryption {
       const nonce = csprng(COMMITMENT_NONCE_LENGTH_32_BYTES);
       const encryptedNonce = await aesGCMEncrypt(nonce, initializationVector, dataKey);
 
-      // 4. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
+      // 4. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key in DER format)
       const wrapperKey = await importRSAOAEPEncryptionKey(this._config.wrapperKey);
       const encryptedDataKey = await rsaOaepWrapKey(dataKey, wrapperKey);
 
