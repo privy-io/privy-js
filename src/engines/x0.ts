@@ -138,7 +138,8 @@ export class Encryption {
     encryptedData: Uint8Array,
     encryptedDataKey: Uint8Array,
     encryptedNonce: Uint8Array,
-    initializationVector: Uint8Array,
+    dataInitializationVector: Uint8Array,
+    nonceInitializationVector: Uint8Array,
     wrapperKeyId: Uint8Array,
   ): Uint8Array {
     return concatBuffers(
@@ -147,9 +148,10 @@ export class Encryption {
       wrapperKeyId,
       bufferFromUInt64(encryptedDataKey.byteLength),
       encryptedDataKey,
-      initializationVector,
+      dataInitializationVector,
       bufferFromUInt64(encryptedData.byteLength - AUTH_TAG_LENGTH_16_BYTES),
       encryptedData,
+      nonceInitializationVector,
       encryptedNonce,
     );
   }
@@ -179,14 +181,15 @@ export class Encryption {
     try {
       // 1. Generate a secret key (aka, data key) and initialization vector
       const dataKey = await generateAESGCMEncryptionKey();
-      const initializationVector = csprng(IV_LENGTH_12_BYTES);
+      const dataInitializationVector = csprng(IV_LENGTH_12_BYTES);
 
       // 2. Encrypt (AES-256-GCM) plaintext data using data key
-      const encryptedData = await aesGCMEncrypt(this._plaintext, initializationVector, dataKey);
+      const encryptedData = await aesGCMEncrypt(this._plaintext, dataInitializationVector, dataKey);
 
       // 3. Generate and encrypt a nonce used for data integrity checks
-      const nonce = csprng(COMMITMENT_NONCE_LENGTH_32_BYTES);
-      const encryptedNonce = await aesGCMEncrypt(nonce, initializationVector, dataKey);
+      const nonce = csprng(IV_LENGTH_12_BYTES);
+      const nonceInitializationVector = csprng(IV_LENGTH_12_BYTES);
+      const encryptedNonce = await aesGCMEncrypt(nonce, nonceInitializationVector, dataKey);
 
       // 4. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key)
       const wrapperKey = await importRSAOAEPEncryptionKey(this._config.wrapperKey);
@@ -197,7 +200,8 @@ export class Encryption {
         encryptedData,
         encryptedDataKey,
         encryptedNonce,
-        initializationVector,
+        dataInitializationVector,
+        nonceInitializationVector,
         this._config.wrapperKeyId,
       );
 
@@ -249,10 +253,16 @@ export class Decryption {
   _encryptedDataKey: Uint8Array;
 
   /**
-   * Initialization vector buffer
+   * Initialization vector buffer for the encrypted data.
    * @internal
    */
-  _initializationVector: Uint8Array;
+  _dataInitializationVector: Uint8Array;
+
+  /**
+   * Initialization vector buffer for the encrypted nonce.
+   * @internal
+   */
+  _nonceInitializationVector: Uint8Array;
 
   /**
    * Ciphertext buffer
@@ -273,12 +283,13 @@ export class Decryption {
    */
   constructor(serialized: Uint8Array) {
     const {
-      cryptoVersion,
-      wrapperKeyId,
-      encryptedDataKey,
-      initializationVector,
-      ciphertext,
-      encryptedNonce,
+      cryptoVersion: cryptoVersion,
+      wrapperKeyId: wrapperKeyId,
+      encryptedDataKey: encryptedDataKey,
+      dataInitializationVector: dataInitializationVector,
+      ciphertext: ciphertext,
+      nonceInitializationVector: nonceInitializationVector,
+      encryptedNonce: encryptedNonce,
     } = this._deserializeEncryptedData(serialized);
 
     if (cryptoVersion !== CryptoVersion.x0) {
@@ -287,16 +298,17 @@ export class Decryption {
       );
     }
 
-    if (initializationVector.length !== IV_LENGTH_12_BYTES) {
+    if (dataInitializationVector.length !== IV_LENGTH_12_BYTES) {
       throw new CryptoError(
-        `Invalid initialization vector length: expected ${IV_LENGTH_12_BYTES} but got ${initializationVector.length}`,
+        `Invalid initialization vector length: expected ${IV_LENGTH_12_BYTES} but got ${dataInitializationVector.length}`,
       );
     }
 
     this._wrapperKeyId = wrapperKeyId;
     this._encryptedDataKey = encryptedDataKey;
-    this._initializationVector = initializationVector;
+    this._dataInitializationVector = dataInitializationVector;
     this._ciphertext = ciphertext;
+    this._nonceInitializationVector = nonceInitializationVector;
     this._encryptedNonce = encryptedNonce;
   }
 
@@ -331,8 +343,11 @@ export class Decryption {
     const encryptedDataKey = serializedEncryptedData.slice(offset, offset + encryptedDataKeyLength);
     offset += encryptedDataKeyLength;
 
-    // Read initialization vector.
-    const initializationVector = serializedEncryptedData.slice(offset, offset + IV_LENGTH_12_BYTES);
+    // Read data initialization vector.
+    const dataInitializationVector = serializedEncryptedData.slice(
+      offset,
+      offset + IV_LENGTH_12_BYTES,
+    );
     offset += IV_LENGTH_12_BYTES;
 
     // Read encrypted data length.
@@ -353,7 +368,15 @@ export class Decryption {
 
     // Check if nonce is included (for backwards compatibility) and deserialize if so.
     let encryptedNonce: Uint8Array = new Uint8Array(0);
+    let nonceInitializationVector: Uint8Array = new Uint8Array(0);
     if (offset < serializedEncryptedData.length) {
+      // Read data initialization vector.
+      nonceInitializationVector = serializedEncryptedData.slice(
+        offset,
+        offset + IV_LENGTH_12_BYTES,
+      );
+      offset += IV_LENGTH_12_BYTES;
+
       // Read encrypted nonce.
       encryptedNonce = serializedEncryptedData.slice(
         offset,
@@ -365,8 +388,9 @@ export class Decryption {
       cryptoVersion: cryptoVersion,
       wrapperKeyId: wrapperKeyId,
       encryptedDataKey: encryptedDataKey,
-      initializationVector: initializationVector,
+      dataInitializationVector: dataInitializationVector,
       ciphertext: ciphertext,
+      nonceInitializationVector: nonceInitializationVector,
       encryptedNonce: encryptedNonce,
     };
   }
@@ -400,14 +424,18 @@ export class Decryption {
       const dataKey = await importAESGCMDecryptionKey(dataKeyTypedArray);
 
       // Decrypt plaintext.
-      const plaintext = await aesGCMDecrypt(this._ciphertext, this._initializationVector, dataKey);
+      const plaintext = await aesGCMDecrypt(
+        this._ciphertext,
+        this._dataInitializationVector,
+        dataKey,
+      );
 
       // If commitmentHash passed in, perform integrity check against the commitmentHash.
       if (commitmentHash) {
         // Decrypt nonce.
         const nonce = await aesGCMDecrypt(
           this._encryptedNonce,
-          this._initializationVector,
+          this._nonceInitializationVector,
           dataKey,
         );
 
