@@ -48,16 +48,16 @@ export class EncryptionResult {
    * Hash of (nonce || plaintext) used for content addressing.
    * @internal
    */
-  _commitmentHash: Uint8Array;
+  _commitmentId: Uint8Array;
 
   /**
    * Constructor
    * @internal
    */
-  constructor(ciphertext: Uint8Array, wrapperKeyId: Uint8Array, commitmentHash: Uint8Array) {
+  constructor(ciphertext: Uint8Array, wrapperKeyId: Uint8Array, commitmentId: Uint8Array) {
     this._ciphertext = ciphertext;
     this._wrapperKeyId = wrapperKeyId;
-    this._commitmentHash = commitmentHash;
+    this._commitmentId = commitmentId;
   }
 
   /**
@@ -75,10 +75,10 @@ export class EncryptionResult {
   }
 
   /**
-   * Returns the commitment hash.
+   * Returns the commitment id which is (a sha256 hash).
    */
-  commitmentHash(): Uint8Array {
-    return this._commitmentHash;
+  commitmentId(): Uint8Array {
+    return this._commitmentId;
   }
 }
 
@@ -170,7 +170,7 @@ export class Encryption {
    *         * initialization vector for AES-256-GCM
    *         * encrypted data
    *         * encrypted nonce
-   *     6. Generate a commitment hash for (nonce || plaintext)
+   *     6. Generate the commitment id (sha256 hash) for (nonce || plaintext)
    *     7. Return an EncryptionResult object
    *
    * @returns a Promise that resolves to an EncryptionResult
@@ -201,11 +201,11 @@ export class Encryption {
         this._config.wrapperKeyId,
       );
 
-      // 6. Generate a commitment hash for (nonce || plaintext)
-      const commitmentHash = await sha256(concatBuffers(nonce, this._plaintext));
+      // 6. Generate the commitment id (sha256 hash) for (nonce || plaintext)
+      const commitmentId = await sha256(concatBuffers(nonce, this._plaintext));
 
       // 7. Return an EncryptionResult object
-      return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentHash);
+      return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentId);
     } catch (error) {
       throw new CryptoError('Failed to encrypt plaintext', error);
     }
@@ -389,12 +389,12 @@ export class Decryption {
    * Decrypts the encrypted data using the given data key.
    *
    * @param {Uint8Array} dataKeyTypedArray - The secret key used to encrypt the data.
-   * @param {Uint8Array} commitmentHash - Optional commitmentHash used to perform optional data integrity check.
+   * @param {Uint8Array} commitmentId - Optional commitment hash used to perform optional data integrity check.
    * @returns DecryptionResult containing the plaintext data.
    */
   async decrypt(
     dataKeyTypedArray: Uint8Array,
-    commitmentHash?: Uint8Array,
+    commitmentId?: Uint8Array,
   ): Promise<DecryptionResult> {
     try {
       const dataKey = await importAESGCMDecryptionKey(dataKeyTypedArray);
@@ -402,8 +402,8 @@ export class Decryption {
       // Decrypt plaintext.
       const plaintext = await aesGCMDecrypt(this._ciphertext, this._initializationVector, dataKey);
 
-      // If commitmentHash passed in, perform integrity check against the commitmentHash.
-      if (commitmentHash) {
+      // If commitmentId passed in, perform integrity check against the commitment id.
+      if (commitmentId) {
         // Decrypt nonce.
         const nonce = await aesGCMDecrypt(
           this._encryptedNonce,
@@ -413,9 +413,9 @@ export class Decryption {
 
         // Calculate hash.
         const hash = await sha256(concatBuffers(nonce, plaintext));
-        if (!buffersEqual(hash, commitmentHash)) {
+        if (!buffersEqual(hash, commitmentId)) {
           throw new CryptoError(
-            `Data integrity check failed: expected ${commitmentHash}, but got ${hash}`,
+            `Data integrity check failed: expected ${commitmentId}, but got ${hash}`,
           );
         }
       }
