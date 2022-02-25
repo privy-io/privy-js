@@ -6,6 +6,3 @@ export {CryptoVersion} from './version';
 
 // Expose CryptoEngine getter
 export {CryptoEngine} from './engines';
-
-// Expose md5 utility
-export {md5Hash, sha256Hash} from './crypto';

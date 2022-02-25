@@ -1,88 +1,162 @@
-import * as webcrypto from 'webcrypto';
-import {concatBuffers} from './buffers';
-
-const AES_256_GCM = 'aes-256-gcm';
-const SHA1 = 'sha1';
+import {CryptoError} from './errors';
+import {crypto} from './webcrypto';
 
 /**
- * Utility function to create md5 hashes of data.
- * NOTE: This is not a cryptographic hash; Useful for obtaining the hexstring hash of
- * encrypted file contents when uploading to the cloud for integrity checks.
- *
- * @param {Uint8Array} data - Data to hash
- * @returns {Uint8Array} Binary hash
+ * The following key, nonce, and IV constants
+ * refer to NIST-recommended lengths.
  */
-export function md5Hash(data: Uint8Array): string {
-  // In the browser, createHash uses the hash-base library, which uses Buffer.isBuffer() to check for a _isBuffer prop.
-  // But it doesn't actually use any of the extra methods in Buffer.
-  // https://github.com/crypto-browserify/hash-base/blob/master/index.js#L7
-  // TODO: This is a hack and we should use a different library.
-  const buffer = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
-  (buffer as any)._isBuffer = true;
-  return webcrypto.createHash('md5').update(buffer).digest('hex');
-}
 
-/**
- * Utility function to create SHA256 hashes of data.
- *
- * @param {Uint8Array} data - Data to hash
- * @returns {Uint8Array} Binary hash
- */
-export function sha256Hash(data: Uint8Array): Uint8Array {
-  return webcrypto.createHash('sha256').update(data).digest();
-}
+// Used for serialization / deserialization logic.
+export const IV_LENGTH_12_BYTES = 12;
+export const COMMITMENT_NONCE_LENGTH_32_BYTES = 32;
+export const AUTH_TAG_LENGTH_16_BYTES = 16;
 
-export function csprng(lengthInBytes: number): Uint8Array {
-  // In node, this will be crypto.randomBytes, which is a CSPRNG.
-  //
-  //     https://nodejs.org/api/crypto.html#cryptorandombytessize-callback
-  //
-  // In the browser, this will be crypto.getRandomValues, which
-  // MDN recommends against using to generate keys, preferring
-  // instead to use SubtleCrypto.generateKey.
-  //
-  //     https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
-  //
-  return webcrypto.randomBytes(lengthInBytes);
-}
+// https://developer.mozilla.org/en-US/docs/Web/API/CryptoKey
+// https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
+const RAW_FORMAT = 'raw';
+const SPKI_FORMAT = 'spki';
+const EXTRACTABLE = true;
+const NOT_EXTRACTABLE = false;
+const ENCRYPT_ONLY: KeyUsage[] = ['encrypt'];
+const DECRYPT_ONLY: KeyUsage[] = ['decrypt'];
+const WRAP_KEY_ONLY: KeyUsage[] = ['wrapKey'];
 
-export function aes256gcmEncrypt(
-  plaintext: Uint8Array,
-  dataKey: Uint8Array,
-  initializationVector: Uint8Array,
-) {
-  const cipher = webcrypto.createCipheriv(AES_256_GCM, dataKey, initializationVector);
-  const ciphertext = concatBuffers(cipher.update(plaintext), cipher.final());
-  const authenticationTag = cipher.getAuthTag();
-  return {ciphertext, authenticationTag};
-}
+// https://developer.mozilla.org/en-US/docs/Web/API/AesKeyGenParams
+// https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
+const AES_GCM = 'AES-GCM';
+const AES_KEY_LENGTH_32_BYTES = 32;
+const AES_KEY_LENGTH_256_BITS = AES_KEY_LENGTH_32_BYTES * 8;
+const AUTH_TAG_LENGTH_128_BITS = AUTH_TAG_LENGTH_16_BYTES * 8;
 
-export function aes256gcmDecrypt(
-  ciphertext: Uint8Array,
-  dataKey: Uint8Array,
-  initializationVector: Uint8Array,
-  authenticationTag: Uint8Array,
-): Uint8Array {
-  const decipher = webcrypto.createDecipheriv(AES_256_GCM, dataKey, initializationVector);
-  decipher.setAuthTag(authenticationTag);
-  return concatBuffers(decipher.update(ciphertext), decipher.final());
+// https://developer.mozilla.org/en-US/docs/Web/API/RsaHashedKeyGenParams
+const RSA_OAEP = 'RSA-OAEP';
+const RSA_OAEP_ALGORITHM: RsaHashedKeyGenParams = Object.freeze({
+  name: RSA_OAEP,
+  hash: 'SHA-1',
+  modulusLength: 2048,
+  publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+});
+
+// https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams
+function aesGCMParams(iv: BufferSource): AesGcmParams {
+  return {
+    iv: iv,
+    name: AES_GCM,
+    tagLength: AUTH_TAG_LENGTH_128_BITS,
+  };
 }
 
 /**
- * This is only used to encrypt the AES secret key so that
- * the only way to decrypt it is with the RSA private key.
- * The RSA private key is stored in an HSM and is thus never
- * exposed to the Privy server or any clients.
+ * Cryptographically-secure pseudo-random number generator.
  *
- * The next iteration of Privy's crypto code will be using ECC
- * and thus moving away from the less secure RSA+SHA1.
+ * @param {number} byteLength the number of random bytes to return
+ * @returns {Uint8Array} random bytes as Uint8Array
  */
-export function rsaOaepSha1Encrypt(plaintext: Uint8Array, publicKey: string): Uint8Array {
-  return webcrypto.publicEncrypt(
+export function csprng(byteLength: number): Uint8Array {
+  return crypto.getRandomValues(new Uint8Array(byteLength));
+}
+
+/**
+ * Generates a new 256 bit key for AES-GCM encryption.
+ *
+ * @returns {Promise<CryptoKey>} promise resolving to a CryptoKey
+ */
+export function generateAESGCMEncryptionKey(): Promise<CryptoKey> {
+  return crypto.subtle.generateKey(
     {
-      key: publicKey,
-      oaepHash: SHA1,
+      name: AES_GCM,
+      length: AES_KEY_LENGTH_256_BITS,
     },
-    plaintext,
+    EXTRACTABLE,
+    ENCRYPT_ONLY,
   );
+}
+
+/**
+ * Imports a 256 bit key for AES-GCM decryption.
+ *
+ * @param {BufferSource} key Uint8Array of the AES key
+ * @returns {Promise<CryptoKey>} promise resolving to the imported CryptoKey
+ */
+export function importAESGCMDecryptionKey(key: BufferSource): Promise<CryptoKey> {
+  if (key.byteLength !== AES_KEY_LENGTH_32_BYTES) {
+    throw new CryptoError(`key must be 32 bytes but was ${key.byteLength} bytes`);
+  }
+
+  return crypto.subtle.importKey(RAW_FORMAT, key, AES_GCM, NOT_EXTRACTABLE, DECRYPT_ONLY);
+}
+
+/**
+ * Imports a 2048 bit public key in DER format for AES-GCM decryption.
+ *
+ * @param {BufferSource} key Uint8Array of the RSA public key in DER format
+ * @returns {Promise<CryptoKey>} promise resolving to the imported CryptoKey
+ */
+export function importRSAOAEPEncryptionKey(key: BufferSource): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    SPKI_FORMAT,
+    key,
+    RSA_OAEP_ALGORITHM,
+    NOT_EXTRACTABLE,
+    WRAP_KEY_ONLY,
+  );
+}
+
+/**
+ * Performs AES-GCM encryption on the given plaintext
+ * using the given initialization vector and key.
+ *
+ * @param {BufferSource} pt the plaintext data to encrypt
+ * @param {BufferSource} iv the initialization vector
+ * @param {CryptoKey} key the secret encryption key
+ * @returns {Promise<Uint8Array>} promise resolving to the encrypted bytes
+ */
+export async function aesGCMEncrypt(
+  pt: BufferSource,
+  iv: BufferSource,
+  key: CryptoKey,
+): Promise<Uint8Array> {
+  const ct = await crypto.subtle.encrypt(aesGCMParams(iv), key, pt);
+  return new Uint8Array(ct);
+}
+
+/**
+ * Performs AES-GCM decryption on the given ciphertext
+ * using the given initialization vector and key.
+ *
+ * @param {BufferSource} ct the ciphertext data to decrypt
+ * @param {BufferSource} iv the initialization vector
+ * @param {CryptoKey} key the secret encryption key
+ * @returns {Promise<Uint8Array>} promise resolving to the decrypted bytes
+ */
+export async function aesGCMDecrypt(
+  ct: BufferSource,
+  iv: BufferSource,
+  key: CryptoKey,
+): Promise<Uint8Array> {
+  const pt = await crypto.subtle.decrypt(aesGCMParams(iv), key, ct);
+  return new Uint8Array(pt);
+}
+
+/**
+ * Performs RSA-OAEP encryption of key with a wrapping key (i.e., RSA public key).
+ *
+ * @param {CryptoKey} key key to encrypt
+ * @param {CryptoKey} wrappingKey RSA public key to use for encrypting key
+ * @returns {Promise<Uint8Array>} promise resolving to the encrypted bytes
+ */
+export async function rsaOaepWrapKey(key: CryptoKey, wrappingKey: CryptoKey): Promise<Uint8Array> {
+  const ct = await crypto.subtle.wrapKey(RAW_FORMAT, key, wrappingKey, {name: RSA_OAEP});
+  return new Uint8Array(ct);
+}
+
+/**
+ * Hashes data using SHA256.
+ *
+ * @param {BufferSource} data data to hash
+ * @returns {Promise<Uint8Array>} promise resolving to hashed bytes
+ */
+export async function sha256(data: BufferSource): Promise<Uint8Array> {
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return new Uint8Array(hash);
 }
