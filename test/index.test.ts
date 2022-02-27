@@ -42,6 +42,10 @@ describe('x0', () => {
     privateKey = keyPair.privateKey as CryptoKey;
   });
 
+  test('will fail', () => {
+    expect(true).toEqual(false);
+  });
+
   test('exposes wrapper key algorithm', () => {
     expect(x0.WRAPPER_KEY_ALGORITHM).toEqual('RSA_2048');
   });
