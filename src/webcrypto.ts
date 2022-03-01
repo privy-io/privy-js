@@ -7,6 +7,10 @@ function getCrypto(): Crypto {
     // Latest node versions (>=17.6.0) add a browser-compatible
     // implementation of the Crypto module to the global scope.
     //
+    // To be extra certain, this checks not just the crypto object,
+    // but also the crypto.subtle object to ensure support for webcrypto
+    // and not some older crypto reference.
+    //
     // https://nodejs.org/api/globals.html#crypto
     //
     return globalThis.crypto;

@@ -56,7 +56,7 @@ describe('x0', () => {
 
     const encryptionResult = await privyEncryption.encrypt();
     const ciphertext = encryptionResult.ciphertext();
-    const commitmentHash = encryptionResult.commitmentHash();
+    const commitmentId = encryptionResult.commitmentId();
     expect(encryptionResult.wrapperKeyId()).toEqual(wrapperKeyId);
 
     const privyDecryption = new x0.Decryption(ciphertext);
@@ -66,7 +66,7 @@ describe('x0', () => {
     // encrypted data key and have the KMS return the decrypted data key.
     const decryptedDataKey = await rsaOAEPDecrypt(privyDecryption.encryptedDataKey(), privateKey);
 
-    const decryptionResult = await privyDecryption.decrypt(decryptedDataKey, commitmentHash);
+    const decryptionResult = await privyDecryption.decrypt(decryptedDataKey, commitmentId);
     const plaintextResult = bufferToString(decryptionResult.plaintext());
     expect(plaintextResult).toEqual('{"ssn": "123-45-6789"}');
   });
