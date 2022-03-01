@@ -224,11 +224,18 @@ export class DecryptionResult {
   _plaintext: Uint8Array;
 
   /**
+   * Commitment nonce buffer
+   * @internal
+   */
+  _commitmentNonce: Uint8Array;
+
+  /**
    * Constructor
    * @internal
    */
-  constructor(plaintext: Uint8Array) {
+  constructor(plaintext: Uint8Array, commitmentNonce: Uint8Array) {
     this._plaintext = plaintext;
+    this._commitmentNonce = commitmentNonce;
   }
 
   /**
@@ -236,6 +243,13 @@ export class DecryptionResult {
    */
   plaintext(): Uint8Array {
     return this._plaintext;
+  }
+
+  /**
+   * Returns the commitment nonce.
+   */
+  commitmentNonce(): Uint8Array {
+    return this._commitmentNonce;
   }
 }
 
@@ -430,24 +444,13 @@ export class Decryption {
         dataKey,
       );
 
-      // If commitmentHash passed in, perform integrity check against the commitmentHash.
-      if (commitmentId) {
-        // Decrypt nonce.
-        const nonce = await aesGCMDecrypt(
-          this._encryptedNonce,
-          this._nonceInitializationVector,
-          dataKey,
-        );
-
-        // Calculate hash.
-        const hash = await sha256(concatBuffers(nonce, plaintext));
-        if (!buffersEqual(hash, commitmentId)) {
-          throw new CryptoError(
-            `Data integrity check failed: expected ${commitmentId}, but got ${hash}`,
-          );
-        }
-      }
-      return new DecryptionResult(plaintext);
+      // Decrypt nonce.
+      const commitmentNonce = await aesGCMDecrypt(
+        this._encryptedNonce,
+        this._nonceInitializationVector,
+        dataKey,
+      );
+      return new DecryptionResult(plaintext, commitmentNonce);
     } catch (error) {
       if (error instanceof CryptoError) {
         throw error;
@@ -455,5 +458,21 @@ export class Decryption {
         throw new CryptoError('Failed to decrypt the encrypted data', error);
       }
     }
+  }
+
+  /**
+   * Performs a data integrity check to verify that the decrypted data matches the given commitment id.
+   *
+   * @params {DecryptionResult} decryptionResult containing the plaintext data.
+   * @param {Uint8Array} commitmentId - Commitment hash used to perform optional data integrity check.
+   * @returns True if commitment id matches hash calculated from the decryptionResult, false otherwise.
+   */
+  async verify(decryptionResult: DecryptionResult, commitmentId: Uint8Array): Promise<boolean> {
+    // Calculate hash.
+    const hash = await sha256(
+      concatBuffers(decryptionResult.commitmentNonce(), decryptionResult.plaintext()),
+    );
+    // Return whether the hash matches the commitmentId.
+    return buffersEqual(hash, commitmentId);
   }
 }
