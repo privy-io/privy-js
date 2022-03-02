@@ -27,6 +27,9 @@ const privyEncryption = new x0.Encryption(plaintext, {
 });
 const encryptionResult = await privyEncryption.encrypt();
 const ciphertext = encryptionResult.ciphertext();
+// Commitment id's are computed from the hash of a nonce concatenated with the
+// plaintext. Can be used for an optional data integrity check.
+const commitmentId = encryptionResult.commitmentId();
 
 // Decryption
 const privyDecryption = new x0.Decryption(ciphertext);
@@ -35,10 +38,14 @@ const privyDecryption = new x0.Decryption(ciphertext);
 // key against the Privy server, ultimately doing so in an HSM.
 const decryptedDataKey = decryptDataKey(
   privyDecryption.wrapperKeyId('utf8'),
-  privyDecryption.encryptedDataKey('base64')
+  privyDecryption.encryptedDataKey('base64'),
 );
 
 const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
+// Optional data integrity check.
+if (!(await privyDecryption.verify(decryptionResult, commitmentId))) {
+  throw 'Data integrity check failed.';
+}
 
 // {"ssn": "123-45-6789"}
 console.log(decryptionResult.plaintext('utf8'));
