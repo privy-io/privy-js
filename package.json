@@ -12,8 +12,7 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "prepublishOnly": "npm run clean && npm run build",
     "prettier": "prettier --check \"src/**/*.ts\"",
-    "test": "jest",
-    "version": "git add package.json package-lock.json && git commit -m \"@privy-io/crypto@${npm_package_version}\""
+    "test": "jest"
   },
   "keywords": [
     "privy",
