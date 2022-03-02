@@ -427,13 +427,9 @@ export class Decryption {
    * Decrypts the encrypted data using the given data key.
    *
    * @param {Uint8Array} dataKeyTypedArray - The secret key used to encrypt the data.
-   * @param {Uint8Array} commitmentId - Optional commitment hash used to perform optional data integrity check.
    * @returns DecryptionResult containing the plaintext data.
    */
-  async decrypt(
-    dataKeyTypedArray: Uint8Array,
-    commitmentId?: Uint8Array,
-  ): Promise<DecryptionResult> {
+  async decrypt(dataKeyTypedArray: Uint8Array): Promise<DecryptionResult> {
     try {
       const dataKey = await importAESGCMDecryptionKey(dataKeyTypedArray);
 
