@@ -1,0 +1,30 @@
+{
+  "name": "@privy-io/privy-js",
+  "version": "0.0.1-beta.1",
+  "description": "Browser client for the Privy API",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepublishOnly": "npm run clean && npm run build",
+    "prettier": "prettier --check \"src/**/*.ts\"",
+    "test": "jest"
+  },
+  "keywords": [
+    "privy",
+    "privacy",
+    "encryption",
+    "storage"
+  ],
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "jest": "^27.5.1",
+    "prettier": "^2.6.1",
+    "ts-jest": "^27.1.4",
+    "typescript": "^4.6.3"
+  },
+  "dependencies": {
+  }
+}
