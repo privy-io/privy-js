@@ -35,18 +35,39 @@ async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(arrayBuffer);
 }
 
-interface PrivyOptions {
-  session: Session;
-  apiURL?: string;
-  kmsURL?: string;
-  timeout?: number;
-}
-
+/**
+ * The Privy client performs operations against the Privy API.
+ *
+ * ```typescript
+ * import PrivyClient from '@privy-io/privy-js';
+ * ```
+ */
 export class PrivyClient {
   private api: Http;
   private kms: Http;
 
-  constructor(options: PrivyOptions) {
+  /**
+   * Creates a new Privy client.
+   * @param options Initialization options.
+   */
+  constructor(options: {
+    /**
+     * An object that implements the {@link Session} interface.
+     */
+    session: Session;
+    /**
+     * The URL of the Privy API. Defaults to `https://api.privy.io/v0`.
+     */
+    apiURL?: string;
+    /**
+     * The URL of the Privy KMS. Defaults to `https://kms.privy.io/v0`.
+     */
+    kmsURL?: string;
+    /**
+     * Time in milliseconds after which to timeout requests to the API and KMS. Defaults to `10000` (10 seconds).
+     */
+    timeout?: number;
+  }) {
     options.session;
 
     const apiURL = options.apiURL || PRIVY_API_URL;
@@ -65,13 +86,28 @@ export class PrivyClient {
   }
 
   /**
-   * Get user data from the Privy API.
+   * Get a single field of user data from the Privy API.
+   *
+   * ```typescript
+   * const email = await client.get("0x123", "email");
+   * ```
    *
    * @param userId The id of the user this data belongs to.
-   * @param fields Either a string field name or an array of string field names.
-   * @returns Either a FieldInstance or null or list of FieldInstances or null depending on fields argument.
+   * @param fields String field name.
+   * @returns A {@link FieldInstance} if the field exists, or `null` otherwise.
    */
   async get(userId: string, fields: string): Promise<FieldInstance | null>;
+  /**
+   * Get multiple fields of user data from the Privy API.
+   *
+   * ```typescript
+   * const [firstName, lastName] = await client.get("0x123", ["first-name", "last-name"]);
+   * ```
+   *
+   * @param userId The id of the user this data belongs to.
+   * @param fields Array of string field names.
+   * @returns Array of results in the same order as the input. Each result is a {@link FieldInstance} if the field exists or `null` otherwise.
+   */
   async get(userId: string, fields: string[]): Promise<Array<FieldInstance | null>>;
   async get(
     userId: string,
@@ -89,15 +125,33 @@ export class PrivyClient {
   }
 
   /**
-   * Put user data to the Privy API.
+   * Updates data for a single field for a given user.
+   *
+   * ```typescript
+   * const email = await client.put("0x123", "email", "foo@example.com");
+   * ```
    *
    * @param userId The id of the user this data belongs to.
-   * @param fields Either a field name as a string or an array of objects with field and value keys.
-   * @param value If fields is a string for one field, then value is the value for the field.
-   * @returns Either a FieldInstance or list of FieldInstances depending on fields argument.
+   * @param field String field name.
+   * @param value Value to save.
+   * @returns {@link FieldInstance} of the updated field.
+   */
+  async put(userId: string, field: string, value: string): Promise<FieldInstance>;
+  /**
+   * Updates data for multiple fields for a given user.
+   *
+   * ```typescript
+   * const [firstName, lastName] = await client.put("0x123", [
+   *   {field: "first-name", value: "Jane"},
+   *   {field: "last-name", value: "Doe"},
+   * ]);
+   * ```
+   *
+   * @param userId The id of the user this data belongs to.
+   * @param fields Array of objects with `field` and `value` keys.
+   * @returns Array of {@link FieldInstance}s of the updated fields, in the same order as the input.
    */
   async put(userId: string, fields: {field: string; value: string}[]): Promise<FieldInstance[]>;
-  async put(userId: string, field: string, value: string): Promise<FieldInstance>;
   async put(
     userId: string,
     fields: string | {field: string; value: string}[],
@@ -120,11 +174,35 @@ export class PrivyClient {
   }
 
   /**
-   * Get a user's file from the Privy API.
+   * Download a file stored under a field.
+   *
+   * ```typescript
+   * const avatar = await client.getFile("0x123", "avatar");
+   * download(avatar);
+   *
+   * function download(field: FieldInstance) {
+   *   const data = window.URL.createObjectURL(field.blob());
+   *
+   *   // Lookup extension by mime type (included on blob)
+   *   const ext = getExtensionFromMIMEType(blob.type);
+   *   const filename = `${field.integrity_hash}.${ext}`;
+   *
+   *   // Create a link pointing to the ObjectURL containing the blob.
+   *   const link = document.createElement("a");
+   *   link.style = "display: none;";
+   *   link.href = data;
+   *   link.download = filename;
+   *   link.click();
+   *
+   *   // Cleanup
+   *   window.URL.revokeObjectURL(data);
+   *   link.remove();
+   * }
+   * ```
    *
    * @param userId The id of the user this file belongs to.
    * @param field The field the file is stored under.
-   * @returns A FieldInstance or null.
+   * @returns A {@link FieldInstance} if the file exists, or `null` otherwise.
    */
   async getFile(userId: string, field: string): Promise<FieldInstance | null> {
     const path = userDataPath(userId, [field]);
@@ -159,12 +237,22 @@ export class PrivyClient {
   }
 
   /**
-   * Put a user's file from the Privy API.
+   * Upload a file for a given field.
+   *
+   * ```typescript
+   * const onUpdateAvatar = async (avatar: File) => {
+   *   try {
+   *     await client.putFile("0x123", "avatar", avatar);
+   *   } catch (error) {
+   *     console.log(error);
+   *   }
+   * };
+   * ```
    *
    * @param userId The id of the user this file belongs to.
    * @param field The field to store the file in.
-   * @param Blob The plaintext contents of the file in a Blob.
-   * @returns A FieldInstance.
+   * @param blob The plaintext contents of the file in a Blob.
+   * @returns {@link FieldInstance} for the uploaded file.
    */
   async putFile(userId: string, field: string, blob: Blob): Promise<FieldInstance> {
     try {
@@ -209,11 +297,22 @@ export class PrivyClient {
   }
 
   /**
-   * Reads and decrypts user data from Privy using the integrity hash.
+   * Lookup a field instance by its integrity hash. This method can be used to verify data in addition to fetching it from Privy. For example, this method will:
    *
-   * @param userId The id of the user.
+   * 1. Lookup data by integrity hash
+   * 2. Return the field instance if it exists
+   * 3. Re-compute the integrity hash client side. If it is NOT the same as the `integrityHash` argument, this method will throw an error.
+   *
+   * ```typescript
+   * const ssn = await client.put("0x123", "ssn", "123-45-6789");
+   * const ssnIntegrityHash = ssn.integrity_hash;
+   *
+   * // later on...
+   * const ssn = await client.getByIntegrityHash(ssnIntegrityHash);
+   * ```
+   *
    * @param integrityHash Hash used for content addressing.
-   * @returns A Field
+   * @returns The corresponding {@link FieldInstance} if it exists, or `null` otherwise.
    */
   async getByIntegrityHash(integrityHash: string): Promise<FieldInstance | null> {
     try {

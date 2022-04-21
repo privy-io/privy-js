@@ -57,6 +57,15 @@ Issued At: ${issuedAt}
 Resources:
 - https://privy.io`;
 
+/**
+ * Sign-In With Ethereum sessions, i.e., `SiweSessions`, implement the {@link Session} interface.
+ *
+ * Privy's backend is able to issue access tokens using the [Sign-In With Ethereum](https://eips.ethereum.org/EIPS/eip-4361) spec. This enables developers to use Privy for reading/writing user data *without* hosting their own backend to handle authentication. A big win for reducing operational complexity!
+ *
+ * ```typescript
+ * import {SiweSession} from '@privy-io/privy-js';
+ * ```
+ */
 export class SiweSession extends CustomSession {
   /**
    * @internal
@@ -78,6 +87,11 @@ export class SiweSession extends CustomSession {
    */
   private timeout: number;
 
+  /**
+   * @param apiKey Your *public* API key.
+   * @param provider The Ethereum provider, typically `window.ethereum` (injected by MetaMask).
+   * @param options Initialization options.
+   */
   constructor(apiKey: string, provider: EthereumProvider, options?: SiweSessionOptions) {
     options = options || {};
 
@@ -124,9 +138,9 @@ export class SiweSession extends CustomSession {
   }
 
   /**
-   * Connect the user's wallet.
+   * Prompt the user to connect their wallet.
    *
-   * @returns {string | null} the connected user's address.
+   * @returns {string | null} EIP-55 mixed-case checksum-encoded address of connected wallet or null if user does not connect.
    */
   async connect(): Promise<string | null> {
     await this.provider.request({method: 'eth_requestAccounts'});
@@ -134,7 +148,7 @@ export class SiweSession extends CustomSession {
   }
 
   /**
-   * Get the EIP-155 ID of the currently connected chain.
+   * The currently connected EIP-155 chain id. E.g., `1` for Ethereum mainnet.
    *
    * @returns {string} The EIP-155 chain id.
    */
