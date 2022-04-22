@@ -1,45 +1,20 @@
+import crypto from 'crypto';
 import {CryptoEngine, CryptoVersion} from '../src';
-import {crypto} from '../src/webcrypto';
-
-function stringToBuffer(str: string) {
-  return new TextEncoder().encode(str);
-}
-
-function bufferToString(buffer: BufferSource) {
-  return new TextDecoder().decode(buffer);
-}
-
-async function exportKey(pubKey: CryptoKey): Promise<Uint8Array> {
-  const key = await crypto.subtle.exportKey('spki', pubKey);
-  return new Uint8Array(key);
-}
-
-async function rsaOAEPDecrypt(ct: Uint8Array, key: CryptoKey): Promise<Uint8Array> {
-  const pt = await crypto.subtle.decrypt({name: 'RSA-OAEP'}, key, ct);
-  return new Uint8Array(pt);
-}
+import {toBuffer, toString} from './encoding';
+import {generateRSAKeyPair, rsaOAEPDecrypt} from './rsa';
 
 describe('x0', () => {
   const x0 = CryptoEngine(CryptoVersion.x0);
 
-  const wrapperKeyId = stringToBuffer('8ebdc958-f2cb-47c6-a6a4-a083e6ce1fb2');
+  const wrapperKeyId = toBuffer('8ebdc958-f2cb-47c6-a6a4-a083e6ce1fb2');
 
   let publicKey: Uint8Array;
-  let privateKey: CryptoKey;
+  let privateKey: crypto.KeyObject;
 
   beforeAll(async function () {
-    const keyPair = await crypto.subtle.generateKey(
-      {
-        name: 'RSA-OAEP',
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-        hash: 'SHA-1',
-      },
-      true,
-      ['encrypt', 'decrypt'],
-    );
-    publicKey = await exportKey(keyPair.publicKey as CryptoKey);
-    privateKey = keyPair.privateKey as CryptoKey;
+    const keyPair = generateRSAKeyPair();
+    publicKey = keyPair.publicKey;
+    privateKey = keyPair.privateKey;
   });
 
   test('exposes wrapper key algorithm', () => {
@@ -47,7 +22,7 @@ describe('x0', () => {
   });
 
   test('can encrypt and decrypt some data', async () => {
-    const plaintext = stringToBuffer('{"ssn": "123-45-6789"}');
+    const plaintext = toBuffer('{"ssn": "123-45-6789"}');
 
     const privyEncryption = new x0.Encryption(plaintext, {
       wrapperKey: publicKey,
@@ -64,10 +39,10 @@ describe('x0', () => {
 
     // In real settings, this would instead be a call to the KMS with the
     // encrypted data key and have the KMS return the decrypted data key.
-    const decryptedDataKey = await rsaOAEPDecrypt(privyDecryption.encryptedDataKey(), privateKey);
+    const decryptedDataKey = rsaOAEPDecrypt(privyDecryption.encryptedDataKey(), privateKey);
 
     const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
-    const plaintextResult = bufferToString(decryptionResult.plaintext());
+    const plaintextResult = toString(decryptionResult.plaintext());
     expect(plaintextResult).toEqual('{"ssn": "123-45-6789"}');
     const integritySuccess = await privyDecryption.verify(decryptionResult, commitmentId);
     expect(integritySuccess).toBeTruthy();

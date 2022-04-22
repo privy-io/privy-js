@@ -6,19 +6,12 @@ import {
 } from '../version';
 import {CryptoError} from '../errors';
 import {bufferFromUInt64, buffersEqual, concatBuffers, uint64FromBuffer} from '../buffers';
+import crypto from '../crypto';
 import {
-  aesGCMEncrypt,
-  aesGCMDecrypt,
   AUTH_TAG_LENGTH_16_BYTES,
   COMMITMENT_NONCE_LENGTH_32_BYTES,
-  csprng,
-  generateAESGCMEncryptionKey,
-  importRSAOAEPEncryptionKey,
   IV_LENGTH_12_BYTES,
-  rsaOaepWrapKey,
-  importAESGCMDecryptionKey,
-  sha256,
-} from '../crypto';
+} from '../crypto/constants';
 
 /**
  * This is only used to encrypt the AES secret key so that
@@ -178,39 +171,43 @@ export class Encryption {
    * @returns a Promise that resolves to an EncryptionResult
    */
   async encrypt(): Promise<EncryptionResult> {
+    const pt = this._plaintext;
+    const wrapperKey = this._config.wrapperKey;
+    const wrapperKeyId = this._config.wrapperKeyId;
+
     try {
       // 1. Generate a secret key (aka, data key) and initialization vector
-      const dataKey = await generateAESGCMEncryptionKey();
-      const dataInitializationVector = csprng(IV_LENGTH_12_BYTES);
+      const key = await crypto.aesGCMEncryptionKey();
+      const iv = crypto.csprng(IV_LENGTH_12_BYTES);
 
       // 2. Encrypt (AES-256-GCM) plaintext data using data key
-      const encryptedData = await aesGCMEncrypt(this._plaintext, dataInitializationVector, dataKey);
+      const encryptedData = await crypto.aesGCMEncrypt(pt, iv, key);
 
       // 3. Generate and encrypt a nonce used for data integrity checks
-      const nonce = csprng(IV_LENGTH_12_BYTES);
-      const nonceInitializationVector = csprng(IV_LENGTH_12_BYTES);
-      const encryptedNonce = await aesGCMEncrypt(nonce, nonceInitializationVector, dataKey);
+      const nonce = crypto.csprng(IV_LENGTH_12_BYTES);
+      const nonceIv = crypto.csprng(IV_LENGTH_12_BYTES);
+      const encryptedNonce = await crypto.aesGCMEncrypt(nonce, nonceIv, key);
 
       // 4. Encrypt (RSA-OAEP-SHA1) data key with wrapper key (RSA public key in DER format)
-      const wrapperKey = await importRSAOAEPEncryptionKey(this._config.wrapperKey);
-      const encryptedDataKey = await rsaOaepWrapKey(dataKey, wrapperKey);
+      const encryptedDataKey = await crypto.rsaOAEPEncrypt(key, wrapperKey);
 
       // 5. Serialize the following components into a single buffer
       const serialized = this._serialize(
         encryptedData,
         encryptedDataKey,
         encryptedNonce,
-        dataInitializationVector,
-        nonceInitializationVector,
-        this._config.wrapperKeyId,
+        iv,
+        nonceIv,
+        wrapperKeyId,
       );
 
       // 6. Generate the commitment id (sha256 hash) for (nonce || plaintext)
-      const commitmentId = await sha256(concatBuffers(nonce, this._plaintext));
+      const commitmentId = await crypto.sha256(concatBuffers(nonce, pt));
 
       // 7. Return an EncryptionResult object
-      return new EncryptionResult(serialized, this._config.wrapperKeyId, commitmentId);
+      return new EncryptionResult(serialized, wrapperKeyId, commitmentId);
     } catch (error) {
+      console.log('HERE?>E?>E?>E', error);
       throw new CryptoError('Failed to encrypt plaintext', error);
     }
   }
@@ -424,28 +421,27 @@ export class Decryption {
   }
 
   /**
-   * Decrypts the encrypted data using the given data key.
+   * Decrypts the encrypted data using the given key.
    *
-   * @param {Uint8Array} dataKeyTypedArray - The secret key used to encrypt the data.
+   * @param {Uint8Array} key - The secret key used to encrypt the data.
    * @returns DecryptionResult containing the plaintext data.
    */
-  async decrypt(dataKeyTypedArray: Uint8Array): Promise<DecryptionResult> {
+  async decrypt(key: Uint8Array): Promise<DecryptionResult> {
     try {
-      const dataKey = await importAESGCMDecryptionKey(dataKeyTypedArray);
-
       // Decrypt plaintext.
-      const plaintext = await aesGCMDecrypt(
+      const plaintext = await crypto.aesGCMDecrypt(
         this._ciphertext,
         this._dataInitializationVector,
-        dataKey,
+        key,
       );
 
       // Decrypt nonce.
-      const commitmentNonce = await aesGCMDecrypt(
+      const commitmentNonce = await crypto.aesGCMDecrypt(
         this._encryptedNonce,
         this._nonceInitializationVector,
-        dataKey,
+        key,
       );
+
       return new DecryptionResult(plaintext, commitmentNonce);
     } catch (error) {
       if (error instanceof CryptoError) {
@@ -465,7 +461,7 @@ export class Decryption {
    */
   async verify(decryptionResult: DecryptionResult, commitmentId: Uint8Array): Promise<boolean> {
     // Calculate hash.
-    const hash = await sha256(
+    const hash = await crypto.sha256(
       concatBuffers(decryptionResult.commitmentNonce(), decryptionResult.plaintext()),
     );
     // Return whether the hash matches the commitmentId.
