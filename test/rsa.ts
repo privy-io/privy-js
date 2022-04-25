@@ -17,11 +17,13 @@ export function generateRSAKeyPair() {
 }
 
 export function rsaOAEPDecrypt(pt: Uint8Array, privateKey: crypto.KeyObject) {
-  return crypto.privateDecrypt(
+  const decrypted = crypto.privateDecrypt(
     {
       key: privateKey,
       oaepHash: 'sha1',
     },
     pt,
   );
+
+  return new Uint8Array(decrypted);
 }

@@ -2,6 +2,7 @@ import {IV_LENGTH_12_BYTES} from '../src/crypto/constants';
 import node from '../src/crypto/node';
 import browser from '../src/crypto/browser';
 import {toBuffer, toString, toHex} from './encoding';
+import {generateRSAKeyPair, rsaOAEPDecrypt} from './rsa';
 
 describe('browser', () => {
   describe('aes', () => {
@@ -38,6 +39,22 @@ describe('browser', () => {
       expect(toHex(hash)).toEqual(
         '01a54629efb952287e554eb23ef69c52097a75aecc0e3a93ca0855ab6d7a31a0',
       );
+    });
+  });
+
+  describe('rsa', () => {
+    it('can encrypt', async () => {
+      const keyPair = generateRSAKeyPair();
+      const publicKey = keyPair.publicKey;
+      const privateKey = keyPair.privateKey;
+
+      const pt = toBuffer('secret-key');
+
+      const encrypted = await browser.rsaOAEPEncrypt(pt, publicKey);
+      const decrypted = rsaOAEPDecrypt(encrypted, privateKey);
+
+      expect(decrypted).toEqual(pt);
+      expect(toString(decrypted)).toEqual('secret-key');
     });
   });
 });
@@ -77,6 +94,22 @@ describe('node', () => {
       expect(toHex(hash)).toEqual(
         '01a54629efb952287e554eb23ef69c52097a75aecc0e3a93ca0855ab6d7a31a0',
       );
+    });
+  });
+
+  describe('rsa', () => {
+    it('can encrypt', async () => {
+      const keyPair = generateRSAKeyPair();
+      const publicKey = keyPair.publicKey;
+      const privateKey = keyPair.privateKey;
+
+      const pt = toBuffer('secret-key');
+
+      const encrypted = await node.rsaOAEPEncrypt(pt, publicKey);
+      const decrypted = rsaOAEPDecrypt(encrypted, privateKey);
+
+      expect(decrypted).toEqual(pt);
+      expect(toString(decrypted)).toEqual('secret-key');
     });
   });
 });
