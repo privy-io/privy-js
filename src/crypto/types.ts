@@ -48,7 +48,7 @@ export interface CryptoOperations {
    * Performs RSA-OAEP encryption.
    *
    * @param {Uint8Array} pt Plaintext to encrypt.
-   * @param {Uint8Array} key RSA public key.
+   * @param {Uint8Array} key RSA public key in DER format.
    * @returns {Promise<Uint8Array>} promise resolving to the encrypted bytes.
    */
   rsaOAEPEncrypt(pt: Uint8Array, key: Uint8Array): Promise<Uint8Array>;
