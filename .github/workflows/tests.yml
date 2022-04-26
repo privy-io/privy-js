@@ -9,6 +9,7 @@ jobs:
         node-version: [15.x, 16.x, 17.x] # Test against each node version we support
         package:
           - crypto
+          - privy-js
 
     defaults:
       run:
