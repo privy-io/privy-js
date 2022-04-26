@@ -1,3 +1,7 @@
+// While webcrypto is only intended to be used in the browser, we do
+// want to test this using Node (newer versions implement webcrypto API).
+// Hence this code that dynamically references webcrypto depending on env.
+
 const isNode = !!(typeof process !== 'undefined' && process.versions && process.versions.node);
 
 function getCrypto(): Crypto {
