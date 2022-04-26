@@ -7,6 +7,12 @@ jobs:
     strategy:
       matrix:
         node-version: [15.x, 16.x, 17.x] # Test against each node version we support
+        package:
+          - crypto
+
+    defaults:
+      run:
+        working-directory: packages/${{ matrix.package }}
 
     steps:
     - uses: actions/checkout@v2
@@ -15,6 +21,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
     - run: npm ci # install dependencies
     - run: npm run prettier # ensure code is formatted
     - run: npm run build # ensure it can build
