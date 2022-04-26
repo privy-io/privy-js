@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "es2021", // https://github.com/tsconfig/bases/blob/main/bases/node16.json
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "declaration": true,
+    "strict": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "stripInternal": true,
+    "allowJs": true,
+    "outDir": "./dist"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules"]
+}
