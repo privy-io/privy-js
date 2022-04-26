@@ -15,7 +15,12 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci # install dependencies
-    - run: npm run prettier # ensure code is formatted
-    - run: npm run build # ensure it can build
-    - run: npm test # ensure tests pass
+    - run: |
+        for folder in '.' 'packages/privy-js'; do
+          pushd "${folder}"
+          npm ci # install dependencies
+          npm run prettier # ensure code is formatted
+          npm run build # ensure it can build
+          npm test # ensure tests pass
+          popd
+        done
