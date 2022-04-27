@@ -1,5 +1,4 @@
 import {CryptoError} from '../errors';
-import {crypto} from '../webcrypto';
 import {CryptoOperations} from './types';
 import {AES_KEY_LENGTH_32_BYTES, AUTH_TAG_LENGTH_16_BYTES} from './constants';
 

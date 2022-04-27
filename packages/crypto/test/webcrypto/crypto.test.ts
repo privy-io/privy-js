@@ -12,6 +12,15 @@ import {generateRSAKeyPair, rsaOAEPDecrypt} from './../rsa';
  * and run separately using more recent Node versions.
  */
 
+beforeAll(() => {
+  // Mimic the browser environment.
+  //
+  // TODO(Ben/Zach): Remove when we can use jest 28+ and the
+  // webcrypto --experimental-global-webcrypto node flag, or
+  // once `crypto` global is available w/o flag.
+  globalThis.crypto = require('crypto').webcrypto;
+});
+
 describe('browser', () => {
   describe('aes', () => {
     it('can encrypt and decrypt', async () => {
