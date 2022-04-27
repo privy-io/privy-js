@@ -1,8 +1,16 @@
-import {IV_LENGTH_12_BYTES} from '../src/crypto/constants';
-import node from '../src/crypto/node';
-import browser from '../src/crypto/browser';
-import {toBuffer, toString, toHex} from './encoding';
-import {generateRSAKeyPair, rsaOAEPDecrypt} from './rsa';
+import {IV_LENGTH_12_BYTES} from '../../src/crypto/constants';
+import node from '../../src/crypto/node';
+import browser from '../../src/crypto/browser';
+import {toBuffer, toString, toHex} from './../encoding';
+import {generateRSAKeyPair, rsaOAEPDecrypt} from './../rsa';
+
+/**
+ * These tests require the Web Crypto implementation in Node.js, which
+ * is available in Node v15.x and above. However, we run tests in
+ * all versions we support, which includes Node 14. Therefore, this
+ * file must be excluded from normal test runs (which are run in Node 14)
+ * and run separately using more recent Node versions.
+ */
 
 describe('browser', () => {
   describe('aes', () => {
