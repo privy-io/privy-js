@@ -67,7 +67,7 @@ function sha256(data: Uint8Array): Promise<Uint8Array> {
   return Promise.resolve(new Uint8Array(hash));
 }
 
-const NodeCryptoImplementation: CryptoOperations = {
+export const Crypto: CryptoOperations = {
   csprng,
   sha256,
   aesGCMEncrypt,
@@ -75,5 +75,3 @@ const NodeCryptoImplementation: CryptoOperations = {
   aesGCMEncryptionKey,
   rsaOAEPEncrypt,
 };
-
-export default NodeCryptoImplementation;

@@ -100,7 +100,7 @@ async function sha256(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(hash);
 }
 
-const BrowserCryptoImplementation: CryptoOperations = {
+export const Crypto: CryptoOperations = {
   csprng,
   sha256,
   aesGCMEncrypt,
@@ -108,5 +108,3 @@ const BrowserCryptoImplementation: CryptoOperations = {
   aesGCMEncryptionKey,
   rsaOAEPEncrypt,
 };
-
-export default BrowserCryptoImplementation;

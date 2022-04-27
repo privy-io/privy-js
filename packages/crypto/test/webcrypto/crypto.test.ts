@@ -1,6 +1,6 @@
 import {IV_LENGTH_12_BYTES} from '../../src/crypto/constants';
-import node from '../../src/crypto/node';
-import browser from '../../src/crypto/browser';
+import {Crypto as node} from '../../src/crypto/node';
+import {Crypto as browser} from '../../src/crypto/browser';
 import {toBuffer, toString, toHex} from './../encoding';
 import {generateRSAKeyPair, rsaOAEPDecrypt} from './../rsa';
 
