@@ -20,12 +20,12 @@ const AUTH_TAG_LENGTH_128_BITS = AUTH_TAG_LENGTH_16_BYTES * 8;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/RsaHashedKeyGenParams
 const RSA_OAEP = 'RSA-OAEP';
-const RSA_OAEP_ALGORITHM: RsaHashedKeyGenParams = Object.freeze({
+const RSA_OAEP_ALGORITHM: RsaHashedKeyGenParams = {
   name: RSA_OAEP,
   hash: 'SHA-1',
   modulusLength: 2048,
   publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-});
+};
 
 // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/importKey
 function importAESGCMKey(key: Uint8Array, usages: KeyUsage[]): Promise<CryptoKey> {
