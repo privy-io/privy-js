@@ -52,4 +52,4 @@ jobs:
         cache: 'npm'
         cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
     - run: npm ci # install dependencies
-    - run: npm test-webcrypto # ensure webcrypto tests pass
+    - run: npm run test-webcrypto # ensure webcrypto tests pass
