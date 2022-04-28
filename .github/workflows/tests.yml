@@ -30,12 +30,6 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x] # Test recent version that has webcrypto implemented
-        package:
-          - crypto
-
-    defaults:
-      run:
-        working-directory: packages/${{ matrix.package }}
 
     steps:
     - uses: actions/checkout@v2
@@ -44,6 +38,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
+    - name: Update npm
+      run: npm install --global npm@8
     - run: npm ci # install dependencies
-    - run: npm run test-webcrypto # ensure webcrypto tests pass
+    - run: npm run test-webcrypto --workspace=packages/crypto # ensure webcrypto tests pass
