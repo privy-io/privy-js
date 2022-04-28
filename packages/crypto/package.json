@@ -2,7 +2,8 @@
   "name": "@privy-io/crypto",
   "version": "0.0.2",
   "description": "Privy encryption and decryption library",
-  "main": "dist/index.js",
+  "main": "dist/node.js",
+  "browser": "dist/browser.js",
   "files": [
     "dist/**/*"
   ],

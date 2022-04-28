@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import {CryptoEngine, CryptoVersion} from '../src';
+import {CryptoEngine, CryptoVersion} from '../src/node';
 import {toBuffer, toString} from './encoding';
 import {generateRSAKeyPair, rsaOAEPDecrypt} from './rsa';
 
