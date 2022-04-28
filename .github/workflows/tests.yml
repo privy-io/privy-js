@@ -16,6 +16,8 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+    - name: Update npm
+      run: npm install --global npm@8
     - run: npm ci # install dependencies
     - run: npm run prettier --workspaces # ensure code is formatted
     - run: npm run build --workspaces # ensure it can build
