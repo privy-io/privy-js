@@ -13,12 +13,16 @@ npm install --save @privy-io/crypto
 ## Usage
 
 ```typescript
-import {CryptoEngine, CryptoVersion} from 'privy-crypto-js';
+import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
+
+// Crypto module expects and returns Uint8Arrays. These help with conversion.
+const toBuffer = (str: string) => new TextEncoder().encode(str);
+const toString = (buf: Uint8Array) => new TextDecoder().decode(buf);
 
 // Grab the engine (implementation) corresponding to the version
 const x0 = CryptoEngine(CryptoVersion.x0);
 
-const plaintext = Buffer.from('{"ssn": "123-45-6789"}');
+const plaintext = toBuffer('{"ssn": "123-45-6789"}');
 
 // Encryption
 const privyEncryption = new x0.Encryption(plaintext, {
@@ -37,8 +41,8 @@ const privyDecryption = new x0.Decryption(ciphertext);
 // This is where Privy would decrypt the encrypted data
 // key against the Privy server, ultimately doing so in an HSM.
 const decryptedDataKey = decryptDataKey(
-  privyDecryption.wrapperKeyId('utf8'),
-  privyDecryption.encryptedDataKey('base64'),
+  privyDecryption.wrapperKeyId(),
+  privyDecryption.encryptedDataKey(),
 );
 
 const decryptionResult = await privyDecryption.decrypt(decryptedDataKey);
@@ -48,11 +52,20 @@ if (!(await privyDecryption.verify(decryptionResult, commitmentId))) {
 }
 
 // {"ssn": "123-45-6789"}
-console.log(decryptionResult.plaintext('utf8'));
+console.log(toString(decryptionResult.plaintext()));
 ```
 
 ## Running tests
 
+To test the module interfaces, run:
+
 ```
 npm test
+```
+
+To test the node crypto operations against the browser ones (which use the webcrypto standard), run:
+
+```bash
+# Requires node >= 15
+npm run test-webcrypto
 ```
