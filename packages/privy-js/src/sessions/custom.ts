@@ -14,6 +14,13 @@ const DEFAULT_EXPIRATION_PADDING_IN_SECONDS = 30;
 // can persist between page refreshes and browser tabs.
 const TOKEN_STORAGE_KEY = 'privy:token';
 
+/**
+ * `CustomSession` implements the {@link Session} interface. `CustomSession` can be used to authenticate to Privy through your own backend.
+ *
+ * ```typescript
+ * import {CustomSession} from '@privy-io/privy-js';
+ * ```
+ */
 export class CustomSession implements Session {
   private authenticateOnce: RunEffectOnce;
   private destroyOnce: RunEffectOnce;
@@ -22,6 +29,9 @@ export class CustomSession implements Session {
 
   token: string | null = null;
 
+  /**
+   * @param authenticate Custom authenticate function. Must return a valid JWT on success.
+   */
   constructor(authenticate: () => Promise<string>) {
     // Attempt to hydrate the session by reading the
     // session token from storage if it exists.

@@ -10,7 +10,18 @@ interface HTTPOptions {
 
 type PublicSessionOptions = HTTPOptions;
 
+/**
+ * `PublicSession` implements the {@link Session} interface. `PublicSession` can be used to authenticate only for data marked as publicly accessible.
+ *
+ * ```typescript
+ * import {PublicSession} from '@privy-io/privy-js';
+ * ```
+ */
 export class PublicSession extends CustomSession {
+  /**
+   * @param apiKey Your *public* API key.
+   * @param options Initialization options.
+   */
   constructor(apiKey: string, options?: PublicSessionOptions) {
     options = options || {};
 
