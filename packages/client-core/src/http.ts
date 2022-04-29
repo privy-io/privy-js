@@ -1,5 +1,5 @@
 import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
-import {Session} from './sessions';
+import {Session} from './sessions/session';
 import {wrapApiError} from './errors';
 
 interface DefaultsType {

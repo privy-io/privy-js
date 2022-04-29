@@ -1,8 +1,12 @@
 import md5 from 'md5';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
-import {Http} from './http';
-import {Session} from './sessions';
-import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
+import {Http} from '@privy-io/client-core/dist/http';
+import {Session} from '@privy-io/client-core/dist/sessions/session';
+import {
+  PRIVY_API_URL,
+  PRIVY_KMS_URL,
+  DEFAULT_TIMEOUT_MS,
+} from '@privy-io/client-core/dist/constants';
 import {
   dataKeyPath,
   fileDownloadsPath,
@@ -10,8 +14,8 @@ import {
   integrityHashPath,
   userDataPath,
   wrapperKeyPath,
-} from './paths';
-import {wrap} from './utils';
+} from '@privy-io/client-core/dist/paths';
+import {wrap} from '@privy-io/client-core/dist/utils';
 import {
   DataKeyResponse,
   EncryptedUserDataResponse,
@@ -21,7 +25,7 @@ import {
   WrapperKeyResponse,
 } from './types';
 import {FieldInstance} from './fieldInstance';
-import {formatPrivyError, PrivyClientError} from './errors';
+import {formatPrivyError, PrivyClientError} from '@privy-io/client-core/dist/errors';
 import encoding from './encoding';
 
 // At the moment, there is only one version of

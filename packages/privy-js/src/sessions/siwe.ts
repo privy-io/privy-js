@@ -1,10 +1,10 @@
 import axios, {AxiosResponse} from 'axios';
 import {getAddress} from '@ethersproject/address';
-import {PRIVY_API_URL, DEFAULT_TIMEOUT_MS} from '../constants';
-import {siweNoncePath, siwePath} from '../paths';
-import {CustomSession} from './custom';
-import {wrapApiError} from '../errors';
-import {Token} from '../token';
+import {PRIVY_API_URL, DEFAULT_TIMEOUT_MS} from '@privy-io/client-core/dist/constants';
+import {siweNoncePath, siwePath} from '@privy-io/client-core/dist/paths';
+import {CustomSession} from '@privy-io/client-core/dist/sessions/custom';
+import {wrapApiError} from '@privy-io/client-core/dist/errors';
+import {Token} from '@privy-io/client-core/dist/token';
 
 export interface EthereumProvider {
   request(arg: {

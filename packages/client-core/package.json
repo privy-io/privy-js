@@ -1,0 +1,22 @@
+{
+  "name": "@privy-io/client-core",
+  "version": "0.0.1",
+  "description": "Internal shared client code used by Privy browser and Node SDKs",
+  "license": "Apache-2.0",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc --project ./tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "test": "jest"
+  },
+  "dependencies": {
+    "axios": "^0.26.1",
+    "jwt-decode": "^3.1.2"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^8.5.8",
+    "jsonwebtoken": "^8.5.1"
+  }
+}

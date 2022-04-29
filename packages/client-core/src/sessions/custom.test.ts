@@ -1,6 +1,6 @@
-import jwt from '../../jwt';
-import {CustomSession} from '../../../src';
-import storage from '../../../src/storage';
+import jwt from '../../test/jwt';
+import {CustomSession} from './custom';
+import storage from '../storage';
 
 describe('CustomSession', () => {
   // Expires in sixty seconds

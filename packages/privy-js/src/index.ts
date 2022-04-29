@@ -1,12 +1,17 @@
 import {PrivyClient} from './client';
 
-export {Session} from './sessions';
-export {CustomSession} from './sessions/custom';
+export {Session} from '@privy-io/client-core/dist/sessions/session';
+export {CustomSession} from '@privy-io/client-core/dist/sessions/custom';
 export {SiweSession} from './sessions/siwe';
-export {PublicSession} from './sessions/public';
+export {PublicSession} from '@privy-io/client-core/dist/sessions/public';
 
 export {FieldInstance} from './fieldInstance';
 
-export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';
+export {
+  PrivyError,
+  PrivyApiError,
+  PrivyClientError,
+  PrivySessionError,
+} from '@privy-io/client-core/dist/errors';
 
 export default PrivyClient;
