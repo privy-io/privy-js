@@ -70,4 +70,15 @@ describe('Privy client', () => {
     expect(email.text()).toEqual('tobias@funke.com');
     expect(email.integrity_hash).toEqual(integrityHash);
   });
+
+  it('putFile / getFile api', async () => {
+    const file = await client.putFile(userID, 'avatar', Buffer.from('file_data'), 'text/plain');
+    expect(file.contentType).toEqual('text/plain');
+    expect(file.field_id).toEqual('avatar');
+    expect(file.user_id).toEqual(userID);
+
+    const downloadedFile = await client.getFile(userID, 'avatar');
+    expect(downloadedFile!.buffer().toString()).toEqual('file_data');
+    expect(downloadedFile!.contentType).toEqual('text/plain');
+  });
 });

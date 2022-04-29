@@ -1,10 +1,11 @@
-import encoding from './encoding';
+import encoding, {wrapAsBuffer} from './encoding';
 import {EncryptedUserDataResponseValue} from './types';
 
 export class FieldInstance {
   private attributes: EncryptedUserDataResponseValue;
   private plaintext: Uint8Array;
-  private contentType: string;
+
+  public readonly contentType: string;
 
   constructor(
     attributes: EncryptedUserDataResponseValue,
@@ -24,10 +25,10 @@ export class FieldInstance {
   }
 
   /**
-   * Returns the plaintext contents of this field instance as a Blob.
+   * Returns the plaintext contents of this field instance as a Buffer.
    */
-  blob(): Blob {
-    return new Blob([this.plaintext], {type: this.contentType});
+  buffer(): Buffer {
+    return wrapAsBuffer(this.plaintext);
   }
 
   /**

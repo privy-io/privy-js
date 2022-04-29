@@ -1,4 +1,4 @@
-import md5 from 'md5';
+import FormData from 'form-data';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {Http} from './http';
 import {Session} from './sessions';
@@ -22,18 +22,14 @@ import {
 } from './types';
 import {FieldInstance} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
-import encoding from './encoding';
+import encoding, {wrapAsBuffer} from './encoding';
+import {md5} from './hash';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
 // Once there are > 1 versions, this will need to be
 // dynamic, at least for decryption.
 const x0 = CryptoEngine(CryptoVersion.x0);
-
-async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
-  const arrayBuffer = await blob.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
-}
 
 /**
  * The Privy client performs operations against the Privy API.
@@ -219,16 +215,16 @@ export class PrivyClient {
         throw new PrivyClientError(`${field.field_id} is not a file`);
       }
 
-      const downloadResponse = await this.api.get<Blob>(
+      const downloadResponse = await this.api.get<ArrayBuffer>(
         fileDownloadsPath(field.user_id, field.field_id, field.value),
         {
-          responseType: 'blob',
+          responseType: 'arraybuffer',
         },
       );
 
-      const blob = downloadResponse.data;
+      const ciphertext = new Uint8Array(downloadResponse.data);
       const contentType = downloadResponse.headers['privy-file-content-type'];
-      const plaintext = await this.decryptFile(userId, field, blob);
+      const plaintext = await this.decryptFile(userId, field, ciphertext);
 
       return new FieldInstance(field, plaintext, contentType);
     } catch (error) {
@@ -254,10 +250,13 @@ export class PrivyClient {
    * @param blob The plaintext contents of the file in a Blob.
    * @returns {@link FieldInstance} for the uploaded file.
    */
-  async putFile(userId: string, field: string, blob: Blob): Promise<FieldInstance> {
+  async putFile(
+    userId: string,
+    field: string,
+    plaintext: Buffer,
+    contentType: string,
+  ): Promise<FieldInstance> {
     try {
-      const plaintext = await blobToUint8Array(blob);
-
       const {ciphertext, contentMD5, wrapperKeyId, integrityHash} = await this.encryptFile(
         userId,
         field,
@@ -265,16 +264,23 @@ export class PrivyClient {
       );
 
       const formData = new FormData();
-      formData.append('content_type', blob.type);
+      formData.append('content_type', contentType);
       formData.append('file_id', integrityHash);
       formData.append('content_md5', contentMD5);
       formData.append('wrapper_key_id', wrapperKeyId);
-      formData.append('file', new Blob([ciphertext], {type: 'application/octet-stream'}));
+      formData.append('file', wrapAsBuffer(ciphertext), {
+        contentType: 'application/octet-stream',
+        // A non-empty filename is required in order for this multipart field to be recognized as a file.
+        // This value is ignored by the server.
+        filename: 'file',
+      });
 
       const uploadResponse = await this.api.post<FileMetadata>(
         fileUploadsPath(userId, field),
         formData,
-        undefined,
+        {
+          headers: formData.getHeaders(),
+        },
       );
 
       const file = uploadResponse.data;
@@ -290,7 +296,7 @@ export class PrivyClient {
         ],
       });
 
-      return new FieldInstance(response.data.data[0], plaintext, blob.type);
+      return new FieldInstance(response.data.data[0], plaintext, contentType);
     } catch (error) {
       throw formatPrivyError(error);
     }
@@ -329,15 +335,14 @@ export class PrivyClient {
         const plaintext = await this.decryptAndVerify(field, ciphertext, integrityHash);
         return new FieldInstance(field, plaintext, 'text/plain');
       } else {
-        const downloadResponse = await this.api.get<Blob>(
+        const downloadResponse = await this.api.get<ArrayBuffer>(
           fileDownloadsPath(field.user_id, field.field_id, field.value),
           {
-            responseType: 'blob',
+            responseType: 'arraybuffer',
           },
         );
-        const blob = downloadResponse.data;
+        const ciphertext = new Uint8Array(downloadResponse.data);
         const contentType = downloadResponse.headers['privy-file-content-type'];
-        const ciphertext = await blobToUint8Array(blob);
         const plaintext = await this.decryptAndVerify(field, ciphertext, integrityHash);
         return new FieldInstance(field, plaintext, contentType);
       }
@@ -467,8 +472,11 @@ export class PrivyClient {
     };
   }
 
-  private async decryptFile(userId: string, field: EncryptedUserDataResponseValue, blob: Blob) {
-    const uint8Array = await blobToUint8Array(blob);
+  private async decryptFile(
+    userId: string,
+    field: EncryptedUserDataResponseValue,
+    uint8Array: Uint8Array,
+  ) {
     const decryption = new x0.Decryption(uint8Array);
 
     // Prepare and decrypt the data keys
