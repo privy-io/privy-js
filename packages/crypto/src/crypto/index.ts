@@ -1,17 +1,52 @@
 import {CryptoOperations} from './types';
 
-const isNode = !!(typeof process !== 'undefined' && process.versions && process.versions.node);
+/**
+ * Creates a proxy to an underlying implementation of crypto operations.
+ *
+ * This is used to create a stable object by which callers can operate
+ * against while allowing the underlying implementation to be configured.
+ * It is used to configure the implementation depending on whether the
+ * environment is node or the browser.
+ *
+ * @internal
+ */
+function createCryptoProxy(): [CryptoOperations, (impl: CryptoOperations) => void] {
+  let crypto: CryptoOperations | void = undefined;
 
-function getCryptoOperations(): CryptoOperations {
-  if (isNode) {
-    // eval('require') here so that browser bundlers
-    // DO NOT try to package and bundle Node.js libraries.
-    return eval('require')('./node').Crypto;
-  } else {
-    // require('module') here so that browser bundlers
-    // DO package and bundle this code.
-    return require('./crypto/browser').Crypto;
+  function setCrypto(impl: CryptoOperations) {
+    crypto = impl;
   }
+
+  const proxy: CryptoOperations = {
+    get csprng() {
+      return crypto!.csprng;
+    },
+
+    get sha256() {
+      return crypto!.sha256;
+    },
+
+    get aesGCMEncrypt() {
+      return crypto!.aesGCMEncrypt;
+    },
+
+    get aesGCMDecrypt() {
+      return crypto!.aesGCMDecrypt;
+    },
+
+    get aesGCMEncryptionKey() {
+      return crypto!.aesGCMEncryptionKey;
+    },
+
+    get rsaOAEPEncrypt() {
+      return crypto!.rsaOAEPEncrypt;
+    },
+  };
+
+  return [proxy, setCrypto];
 }
 
-export default getCryptoOperations();
+const [crypto, _setCrypto] = createCryptoProxy();
+
+export default crypto;
+export const setCrypto = _setCrypto;
