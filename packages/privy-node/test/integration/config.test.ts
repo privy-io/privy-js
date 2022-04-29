@@ -1,21 +1,18 @@
-import {Privy as PrivyNode} from './privy';
-import {apiRoute, generateCredentials} from './testUtils';
-
-let credentials: {key: string; secret: string};
-
-beforeAll(async () => {
-  credentials = await generateCredentials();
-});
+import {PrivyConfig as PrivyNode} from '../../src/config';
 
 describe('PrivyNode', () => {
   let privyNode: PrivyNode;
 
   beforeEach(async () => {
     // Create a config API instance.
-    privyNode = new PrivyNode(credentials.key, credentials.secret, {
-      apiRoute,
-      timeoutMs: 0,
-    });
+    privyNode = new PrivyNode(
+      process.env.PRIVY_API_PUBLIC_KEY!,
+      process.env.PRIVY_API_SECRET_KEY!,
+      {
+        apiRoute: process.env.PRIVY_API_URL!,
+        timeoutMs: 0,
+      },
+    );
   });
 
   describe('roles', () => {
@@ -39,22 +36,22 @@ describe('PrivyNode', () => {
     it('list', async () => {
       await expect(privyNode.listRoles()).resolves.toMatchObject([
         {
-          description: 'Grants users access to their own data.',
+          description: 'Role that grants users access to their own data.',
+          is_default: true,
+          name: 'self',
+          role_id: 'self',
+        },
+        {
+          description: 'Default role for your admins.',
           is_default: true,
           name: 'admin',
           role_id: 'admin',
         },
         {
-          description: 'Grants admin access to user data.',
+          description: 'Role granting public access to data.',
           is_default: true,
           name: 'public',
           role_id: 'public',
-        },
-        {
-          description: 'Grants public access to user data.',
-          is_default: true,
-          name: 'self',
-          role_id: 'self',
         },
         {
           description: 'test role',

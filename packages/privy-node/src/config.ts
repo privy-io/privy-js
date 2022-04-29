@@ -1,6 +1,6 @@
 import crypto from 'crypto';
-import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './access-token';
-import {formatPrivyError, PrivyClientError} from './common/errors';
+import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
+import {formatPrivyError, PrivyClientError} from './errors';
 import {AccessTokenClaims, Field, FieldPermission, Group, Role} from './model/data';
 import {
   AliasKeyRequest,
@@ -12,17 +12,13 @@ import {
   UpdateFieldRequest,
   EncryptedAliasRequestValue,
 } from './model/requests';
-import {toBuffer} from './utils';
-import {mapPairs} from './common/utils';
+import {wrapAsBuffer} from './encoding';
+import {mapPairs} from './utils';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {AliasKeyResponse, EncryptedAliasResponse, GroupUsersResponse} from './model/responses';
-import {WrapperKeyResponseValue} from './common/model/responses';
-import {AxiosClient} from './common/axios';
-
-// HTTP client defaults.
-const PRIVY_API = 'https://api.privy.io/v0';
-const PRIVY_KMS = 'https://kms.privy.io/v0';
-const DEFAULT_AXIOS_TIMEOUT_MS = 10000;
+import {WrapperKeyResponseValue} from './types';
+import {Http} from './http';
+import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
@@ -54,7 +50,7 @@ type AliasBundle = {
   aliases: string[];
 };
 
-export interface PrivyConfig {
+export interface PrivyConfigOptions {
   /**
    * Overrides the Privy API.
    */
@@ -75,7 +71,7 @@ export interface PrivyConfig {
   timeoutMs?: number;
 }
 
-export class Privy {
+export class PrivyConfig {
   /**
    * Privy API key.
    * @internal
@@ -107,29 +103,29 @@ export class Privy {
    * Instance of Axios HTTP client.
    * @internal
    */
-  private _axiosInstance: AxiosClient;
+  private _axiosInstance: Http;
 
   /**
    * Construct the Privy instance using a Privy API key pair and configuration options.
    */
-  constructor(apiKey: string, apiSecret: string, config: PrivyConfig = {}) {
+  constructor(apiKey: string, apiSecret: string, config: PrivyConfigOptions = {}) {
     // Store the Privy API key pair.
     this._apiKey = apiKey;
     this._apiSecret = apiSecret;
 
     // Store the Privy KMS route.
-    this._kmsRoute = config.kmsRoute || PRIVY_KMS;
+    this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
 
     this._customAuthKey = config.customAuthKey || false;
     this._signingKey = jwtKeyFromApiSecret(apiSecret);
 
     // Initialize the Axios HTTP client.
-    this._axiosInstance = new AxiosClient({
-      baseURL: config.apiRoute || PRIVY_API,
-      timeout: config.timeoutMs ?? DEFAULT_AXIOS_TIMEOUT_MS,
+    this._axiosInstance = new Http(undefined, {
+      baseURL: config.apiRoute || PRIVY_API_URL,
+      timeout: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       auth: {
-        username: this._apiKey,
-        password: this._apiSecret,
+        username: apiKey,
+        password: apiSecret,
       },
     });
   }
@@ -171,8 +167,8 @@ export class Privy {
     const path = aliasKeyPath();
     const requestBody: AliasKeyRequest = {
       data: keys.map((key) => ({
-        encrypted_key: toBuffer(key.encryptedKey).toString('base64'),
-        alias_wrapper_key_id: toBuffer(key.wrapperKeyId).toString('utf8'),
+        encrypted_key: wrapAsBuffer(key.encryptedKey).toString('base64'),
+        alias_wrapper_key_id: wrapAsBuffer(key.wrapperKeyId).toString('utf8'),
       })),
     };
     const response = await this._axiosInstance.post<AliasKeyResponse>(path, requestBody, {

@@ -5,13 +5,17 @@ import {wrapApiError} from './errors';
 interface DefaultsType {
   baseURL: string;
   timeout: number;
+  auth?: {
+    username: string;
+    password: string;
+  };
 }
 
 export class Http {
-  private session: Session;
+  private session?: Session;
   private defaults: DefaultsType;
 
-  constructor(session: Session, defaults: DefaultsType) {
+  constructor(session: Session | undefined, defaults: DefaultsType) {
     this.session = session;
     this.defaults = defaults;
   }
@@ -20,10 +24,12 @@ export class Http {
     path: string,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const authenticated = await this.session.isAuthenticated();
+    if (this.session) {
+      const authenticated = await this.session.isAuthenticated();
 
-    if (!authenticated) {
-      await this.session.authenticate();
+      if (!authenticated) {
+        await this.session.authenticate();
+      }
     }
 
     try {
@@ -38,10 +44,12 @@ export class Http {
     data?: D,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    const authenticated = await this.session.isAuthenticated();
+    if (this.session) {
+      const authenticated = await this.session.isAuthenticated();
 
-    if (!authenticated) {
-      await this.session.authenticate();
+      if (!authenticated) {
+        await this.session.authenticate();
+      }
     }
 
     try {
@@ -51,11 +59,30 @@ export class Http {
     }
   }
 
+  async delete<T = any, R = AxiosResponse<T>, D = any>(
+    path: string,
+    config?: AxiosRequestConfig<D>,
+  ): Promise<R> {
+    if (this.session) {
+      const authenticated = await this.session.isAuthenticated();
+
+      if (!authenticated) {
+        await this.session.authenticate();
+      }
+    }
+
+    try {
+      return axios.delete(path, this.buildConfig(config));
+    } catch (e) {
+      throw wrapApiError(e);
+    }
+  }
+
   private buildConfig(config?: AxiosRequestConfig): AxiosRequestConfig {
     config = config || {};
     config.headers = config.headers || {};
 
-    if (this.session.token !== null) {
+    if (this.session && this.session.token !== null) {
       config.headers.authorization = `Bearer ${this.session.token}`;
     }
 
