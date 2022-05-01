@@ -8,13 +8,6 @@ jobs:
     strategy:
       matrix:
         node-version: [14.x, 16.x, 18.x] # Test against LTS versions
-        package:
-          - crypto
-          - privy-js
-
-    defaults:
-      run:
-        working-directory: packages/${{ matrix.package }}
 
     steps:
     - uses: actions/checkout@v2
@@ -23,11 +16,12 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
+    - name: Update npm
+      run: npm install --global npm@8
     - run: npm ci # install dependencies
-    - run: npm run prettier # ensure code is formatted
-    - run: npm run build # ensure it can build
-    - run: npm test # ensure tests pass
+    - run: npm run prettier --workspaces # ensure code is formatted
+    - run: npm run build --workspaces # ensure it can build
+    - run: npm test --workspaces # ensure tests pass
 
   # Job specifically to test webcrypto against older node crypto for parity
   webcrypto:
@@ -36,12 +30,6 @@ jobs:
     strategy:
       matrix:
         node-version: [18.x] # Test recent version that has webcrypto implemented
-        package:
-          - crypto
-
-    defaults:
-      run:
-        working-directory: packages/${{ matrix.package }}
 
     steps:
     - uses: actions/checkout@v2
@@ -50,6 +38,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: packages/${{ matrix.package }}/package-lock.json
+    - name: Update npm
+      run: npm install --global npm@8
     - run: npm ci # install dependencies
-    - run: npm run test-webcrypto # ensure webcrypto tests pass
+    - run: npm run test-webcrypto --workspace=packages/crypto # ensure webcrypto tests pass

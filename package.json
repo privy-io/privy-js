@@ -1,0 +1,7 @@
+{
+  "name": "privy-js",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}
