@@ -18,10 +18,14 @@ jobs:
         cache: 'npm'
     - name: Update npm
       run: npm install --global npm@8
-    - run: npm ci # install dependencies
-    - run: npm run prettier # ensure code is formatted
-    - run: npm run build --workspaces # ensure it can build
-    - run: npm test --workspaces # ensure tests pass
+    - name: Install dependencies
+      run: npm ci
+    - name: Check formatting
+      run: npm run prettier
+    - name: Build packages
+      run: npm run build --workspaces
+    - name: Run tests
+      run: npm test --workspaces
 
   # Job specifically to test webcrypto against older node crypto for parity
   webcrypto:
@@ -40,5 +44,7 @@ jobs:
         cache: 'npm'
     - name: Update npm
       run: npm install --global npm@8
-    - run: npm ci # install dependencies
-    - run: npm run test-webcrypto --workspace=packages/crypto # ensure webcrypto tests pass
+    - name: Install dependencies
+      run: npm ci
+    - name: Run webcrypto tests
+      run: npm run test-webcrypto --workspace=packages/crypto
