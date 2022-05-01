@@ -15,14 +15,11 @@ npm install --save @privy-io/crypto
 ```typescript
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 
-// Crypto module expects and returns Uint8Arrays. These help with conversion.
-const toBuffer = (str: string) => new TextEncoder().encode(str);
-const toString = (buf: Uint8Array) => new TextDecoder().decode(buf);
-
 // Grab the engine (implementation) corresponding to the version
 const x0 = CryptoEngine(CryptoVersion.x0);
 
-const plaintext = toBuffer('{"ssn": "123-45-6789"}');
+// Crypto module expects Uint8Arrays.
+const plaintext = new TextEncoder().encode('{"ssn": "123-45-6789"}');
 
 // Encryption
 const privyEncryption = new x0.Encryption(plaintext, {
@@ -51,8 +48,9 @@ if (!(await privyDecryption.verify(decryptionResult, commitmentId))) {
   throw 'Data integrity check failed.';
 }
 
-// {"ssn": "123-45-6789"}
-console.log(toString(decryptionResult.plaintext()));
+// Crypto module returns Uint8Arrays.
+const decryptedPlaintext = new TextDecoder().decode(decryptionResult.plaintext());
+console.log(decryptedPlaintext); // {"ssn": "123-45-6789"}
 ```
 
 ## Running tests
