@@ -1,5 +1,5 @@
 {
-  "name": "@privy-io/node",
+  "name": "@privy-io/privy-node",
   "version": "0.1.0",
   "description": "Node server-side client for the Privy API",
   "homepage": "https://privy.io",

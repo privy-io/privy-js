@@ -1,4 +1,4 @@
-# @privy-io/node
+# @privy-io/privy-node
 
 Privy's Node client allows you to interact with the Privy API from server-side Node applications.
 
@@ -11,7 +11,7 @@ Node 14 and higher is supported.
 ## Installation
 
 ```sh
-npm install @privy-io/node
+npm install @privy-io/privy-node
 ```
 
 ## Documentation
