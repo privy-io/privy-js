@@ -19,7 +19,7 @@ Initialize the Privy client using a session that can fetch tokens from Privy thr
 
 ```typescript
 import axios from 'axios';
-import PrivyClient, {CustomSession} from '@privy-io/privy-js';
+import {PrivyClient, CustomSession} from '@privy-io/privy-js';
 
 const session = new CustomSession(async function authenticate() {
   const response = await axios.post<{token: string}>(

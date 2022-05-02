@@ -10,4 +10,3 @@ export {FieldInstance} from './fieldInstance';
 export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';
 
 export {PrivyClient};
-export default PrivyClient;

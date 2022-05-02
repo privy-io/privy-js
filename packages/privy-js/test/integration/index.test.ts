@@ -1,5 +1,5 @@
 import axios from 'axios';
-import PrivyClient, {FieldInstance, CustomSession} from '../../src';
+import {PrivyClient, FieldInstance, CustomSession} from '../../src';
 
 describe('Privy client', () => {
   const userID = `0x${Date.now()}`;
