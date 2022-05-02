@@ -1,4 +1,4 @@
-import {PrivyClient} from './client';
+export {PrivyClient} from './client';
 
 export {Session} from './sessions';
 export {CustomSession} from './sessions/custom';
@@ -8,5 +8,3 @@ export {PublicSession} from './sessions/public';
 export {FieldInstance} from './fieldInstance';
 
 export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';
-
-export {PrivyClient};
