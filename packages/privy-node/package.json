@@ -1,0 +1,30 @@
+{
+  "name": "@privy-io/privy-node",
+  "version": "0.1.0",
+  "description": "Node server-side client for the Privy API",
+  "homepage": "https://privy.io",
+  "license": "Apache-2.0",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "jest --testMatch \"**/test/unit/**/*.test.ts\"",
+    "test-integration": "jest --testMatch \"**/test/integration/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@privy-io/crypto": "0.0.3",
+    "axios": "^0.26.1",
+    "dotenv": "^16.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
