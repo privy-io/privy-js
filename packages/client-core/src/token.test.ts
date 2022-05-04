@@ -1,5 +1,5 @@
-import jwt from '../../jwt';
-import {Token} from '../../../src/token';
+import jwt from '../test/jwt';
+import {Token} from './token';
 
 describe('Token', () => {
   const activeToken = jwt.create('0x123', 60);

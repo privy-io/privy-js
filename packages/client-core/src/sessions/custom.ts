@@ -1,4 +1,4 @@
-import {Session} from '.';
+import {Session} from './session';
 import {Token} from '../token';
 import {RunEffectOnce} from '../effect';
 import {PrivySessionError} from '../errors';

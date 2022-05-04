@@ -27,17 +27,15 @@
     "test-integration": "jest --testMatch \"**/test/integration/**/*.test.ts\""
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^8.5.8",
-    "@types/md5": "^2.3.2",
-    "jsonwebtoken": "^8.5.1"
+    "@types/md5": "^2.3.2"
   },
   "dependencies": {
     "@ethersproject/address": "^5.6.0",
+    "@privy-io/client-core": "0.0.1",
     "@privy-io/crypto": "0.0.3",
     "axios": "^0.26.1",
     "base64-js": "^1.5.1",
     "dotenv": "^16.0.0",
-    "jwt-decode": "^3.1.2",
     "md5": "^2.3.0"
   }
 }
