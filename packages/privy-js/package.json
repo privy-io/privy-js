@@ -29,7 +29,10 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^8.5.8",
     "@types/md5": "^2.3.2",
-    "jsonwebtoken": "^8.5.1"
+    "jsonwebtoken": "^8.5.1",
+    "@types/jest": "^27.0.3",
+    "jest": "^27.4.5",
+    "ts-jest": "^27.0.3"
   },
   "dependencies": {
     "@ethersproject/address": "^5.6.0",
