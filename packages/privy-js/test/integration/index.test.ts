@@ -1,9 +1,54 @@
 import axios from 'axios';
 import PrivyClient, {FieldInstance, CustomSession} from '../../src';
 
+const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
+const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
+const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
+
+// If these are omitted, a new API key pair will be generated using the default dev console login.
+let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
+let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
+
+// Convenience function to generate a new API key pair using default dev credentials.
+const fetchAPIKeys = async () => {
+  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+    const {
+      data: {token},
+    } = await axios.post(
+      '/token',
+      {},
+      {
+        baseURL: PRIVY_CONSOLE,
+        auth: {
+          username: 'hi@acme.co',
+          password: 'acme-password1',
+        },
+      },
+    );
+    const {
+      data: {key, secret},
+    } = await axios.post(
+      '/accounts/api_keys',
+      {},
+      {
+        baseURL: PRIVY_CONSOLE,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    console.log('Generated API key pair:', key, ',', secret);
+    PRIVY_API_PUBLIC_KEY = key;
+    PRIVY_API_SECRET_KEY = secret;
+  }
+};
+
+beforeAll(async () => {
+  await fetchAPIKeys();
+});
+
 describe('Privy client', () => {
   const userID = `0x${Date.now()}`;
-
   // In production code, this would likely be setup to hit
   // a backend that would then call Privy so that the API
   // secret key is not exposed on clients. However, any
@@ -15,8 +60,8 @@ describe('Privy client', () => {
       {requester_id: userID, roles: []},
       {
         auth: {
-          username: process.env.PRIVY_API_PUBLIC_KEY as string,
-          password: process.env.PRIVY_API_SECRET_KEY as string,
+          username: PRIVY_API_PUBLIC_KEY,
+          password: PRIVY_API_SECRET_KEY,
         },
       },
     );
@@ -24,8 +69,8 @@ describe('Privy client', () => {
   });
 
   const client = new PrivyClient({
-    apiURL: process.env.PRIVY_API_URL,
-    kmsURL: process.env.PRIVY_KMS_URL,
+    apiURL: PRIVY_API,
+    kmsURL: PRIVY_KMS,
     session: customSession,
   });
 

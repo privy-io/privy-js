@@ -10,8 +10,35 @@ export const userDataPath = (userId: string, fields?: string[]) => {
   return `${path}?${query.join('&')}`;
 };
 
+export interface BatchOptions {
+  cursor?: string;
+  limit?: number;
+}
+
+export const batchUserDataPath = (fields: string[], options: BatchOptions) => {
+  const path = `/batch_data`;
+  const query = [];
+
+  if (options.cursor) {
+    query.push(`cursor=${options.cursor}`);
+  }
+  if (options.limit) {
+    query.push(`limit=${options.limit}`);
+  }
+  if (Array.isArray(fields) && fields.length > 0) {
+    const uriEncodedFields = fields.map(encodeURIComponent);
+    query.push(`fields=${uriEncodedFields.join(',')}`);
+  }
+
+  return `${path}?${query.join('&')}`;
+};
+
 export const dataKeyPath = (userId: string) => {
   return `/key_manager/users/${userId}/data_key`;
+};
+
+export const batchDataKeyPath = () => {
+  return `/key_manager/data_key`;
 };
 
 export const wrapperKeyPath = (userId: string) => {

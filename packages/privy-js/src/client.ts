@@ -4,6 +4,9 @@ import {Http} from './http';
 import {Session} from './sessions';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 import {
+  batchDataKeyPath,
+  BatchOptions,
+  batchUserDataPath,
   dataKeyPath,
   fileDownloadsPath,
   fileUploadsPath,
@@ -13,14 +16,16 @@ import {
 } from './paths';
 import {wrap} from './utils';
 import {
+  BatchEncryptedUserDataResponse,
   DataKeyResponse,
   EncryptedUserDataResponse,
   EncryptedUserDataResponseValue,
   EncryptedUserDataRequestValue,
   FileMetadata,
   WrapperKeyResponse,
+  DataKeyFieldRequest,
 } from './types';
-import {FieldInstance} from './fieldInstance';
+import {FieldInstance, BatchFieldInstances} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
 import encoding from './encoding';
 
@@ -120,9 +125,31 @@ export class PrivyClient {
       const decrypted = await this.decrypt(userId, response.data.data);
       return typeof fields === 'string' ? decrypted[0] : decrypted;
     } catch (error) {
+      console.log('Error:', error);
       throw formatPrivyError(error);
     }
   }
+
+  /**
+   * Get user data for multiple users from the Privy API.
+   *
+   * @param userIds
+   * @param fields
+   */
+  // async getBatch(
+  //   fields: string | string[],
+  //   options: BatchOptions = {},
+  // ): Promise<Array<BatchFieldInstances>> {
+  //   const path = batchUserDataPath(wrap(fields), options);
+
+  //   try {
+  //     const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
+  //     const decrypted = await this.decryptBatch(response.data);
+  //     return decrypted;
+  //   } catch (error) {
+  //     throw formatPrivyError(error);
+  //   }
+  // }
 
   /**
    * Updates data for a single field for a given user.
@@ -530,15 +557,27 @@ export class PrivyClient {
     }));
   }
 
-  async decryptKeys(
-    userId: string,
-    keys: {field_id: string; wrapper_key_id: string; encrypted_key: string}[],
-  ): Promise<Uint8Array[]> {
+  async decryptKeys(userId: string, keys: DataKeyFieldRequest[]): Promise<Uint8Array[]> {
     if (keys.length === 0) {
       return [];
     }
     const path = dataKeyPath(userId);
-    const response = await this.kms.post<DataKeyResponse>(path, {data: keys});
+    const response = await this.kms.post<DataKeyResponse>(path, {user_id: userId, data: keys});
     return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
   }
+
+  //   async decryptBatchKeys(userRequests: DataKeyUserRequest[]): Promise<Uint8Array[]> {
+  //     if (userRequests.length === 0) {
+  //       return [];
+  //     }
+  //     const path = batchDataKeyPath();
+  //     const response = await this.kms.post<DataKeyResponse>(path, {users: userRequests});
+  //     return response.data.users.map();
+  //   }
+
+  //   private async decryptBatch(
+  //     batchData: BatchEncryptedUserDataResponse,
+  //   ): Promise<Array<BatchFieldInstances>> {
+  //     path = batchDataKeyPath;
+  //   }
 }

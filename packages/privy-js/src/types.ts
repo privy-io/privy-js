@@ -8,7 +8,12 @@ export interface EncryptedUserDataResponseValue {
 }
 
 export interface EncryptedUserDataResponse {
+  user_id: string;
   data: EncryptedUserDataResponseValue[];
+}
+
+export interface BatchEncryptedUserDataResponse {
+  users: EncryptedUserDataResponse[];
 }
 
 export interface DataKeyResponseValue {
@@ -17,6 +22,21 @@ export interface DataKeyResponseValue {
 
 export interface DataKeyResponse {
   data: DataKeyResponseValue[];
+}
+
+export interface DataKeyFieldRequest {
+  field_id: string;
+  wrapper_key_id: string;
+  encrypted_key: string;
+}
+
+export interface DataKeyUserRequest {
+  user_id: string;
+  data: DataKeyFieldRequest[];
+}
+
+export interface BatchDataKeyRequest {
+  users: DataKeyUserRequest[];
 }
 
 export interface EncryptedUserDataRequestValue {

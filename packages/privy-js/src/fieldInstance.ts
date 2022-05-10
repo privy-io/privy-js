@@ -1,6 +1,11 @@
 import encoding from './encoding';
 import {EncryptedUserDataResponseValue} from './types';
 
+export type BatchFieldInstances = {
+  user_id: string;
+  field_instances: FieldInstance[];
+};
+
 export class FieldInstance {
   private attributes: EncryptedUserDataResponseValue;
   private plaintext: Uint8Array;
