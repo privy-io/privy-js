@@ -20,11 +20,16 @@ export interface DataKeyResponseValue {
   key: string; // Data key as base64 string.
 }
 
-export interface DataKeyResponse {
+export interface DataKeyUserResponse {
+  user_id: string;
   data: DataKeyResponseValue[];
 }
 
-export interface DataKeyFieldRequest {
+export interface DataKeyBatchResponse {
+  users: DataKeyUserResponse[];
+}
+
+export interface DataKeyRequest {
   field_id: string;
   wrapper_key_id: string;
   encrypted_key: string;
@@ -32,10 +37,10 @@ export interface DataKeyFieldRequest {
 
 export interface DataKeyUserRequest {
   user_id: string;
-  data: DataKeyFieldRequest[];
+  data: DataKeyRequest[];
 }
 
-export interface BatchDataKeyRequest {
+export interface DataKeyBatchRequest {
   users: DataKeyUserRequest[];
 }
 
