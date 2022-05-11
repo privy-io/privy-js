@@ -1,5 +1,5 @@
 import axios from 'axios';
-import PrivyClient, {FieldInstance, CustomSession} from '../../src';
+import PrivyClient, {FieldInstance, UserFieldInstances, CustomSession} from '../../src';
 
 const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
@@ -115,4 +115,16 @@ describe('Privy client', () => {
     expect(email.text()).toEqual('tobias@funke.com');
     expect(email.integrity_hash).toEqual(integrityHash);
   });
+
+  // it('batch get / put api', async () => {
+  //   let username: FieldInstance | null, email: FieldInstance | null;
+  //   let data: UserFieldInstances;
+  //   [username, email] = await client.put(userID, [
+  //     {field: 'username', value: 'tobias'},
+  //     {field: 'email', value: 'tobias@funke.com'},
+  //   ]);
+
+  //   [data] = await client.getBatch(['username'], {cursor: userID, limit: 1});
+  //   console.log(data);
+  // });
 });

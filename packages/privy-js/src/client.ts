@@ -25,8 +25,11 @@ import {
   WrapperKeyResponse,
   DataKeyUserRequest,
   DataKeyRequest,
+  DataKeyBatchRequest,
+  DataKeyBatchResponse,
+  DataKeyResponseValue,
 } from './types';
-import {FieldInstance, BatchFieldInstances} from './fieldInstance';
+import {FieldInstance, UserFieldInstances} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
 import encoding from './encoding';
 
@@ -134,23 +137,23 @@ export class PrivyClient {
   /**
    * Get user data for multiple users from the Privy API.
    *
-   * @param userIds
-   * @param fields
+   * @param fields: Array of string field names.
+   * @param options Options for the batch to collect, i.e. an optional cursor and limit.
    */
-  // async getBatch(
-  //   fields: string | string[],
-  //   options: BatchOptions = {},
-  // ): Promise<Array<BatchFieldInstances>> {
-  //   const path = batchUserDataPath(wrap(fields), options);
+  async getBatch(
+    fields: string | string[],
+    options: BatchOptions = {},
+  ): Promise<Array<UserFieldInstances>> {
+    const path = batchUserDataPath(wrap(fields), options);
 
-  //   try {
-  //     const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
-  //     const decrypted = await this.decryptBatch(response.data);
-  //     return decrypted;
-  //   } catch (error) {
-  //     throw formatPrivyError(error);
-  //   }
-  // }
+    try {
+      const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
+      const decrypted = await this.decryptBatch(wrap(fields), response.data);
+      return decrypted;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
 
   /**
    * Updates data for a single field for a given user.
@@ -567,18 +570,100 @@ export class PrivyClient {
     return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
   }
 
-  // async decryptBatchKeys(userRequests: DataKeyUserRequest[]): Promise<Uint8Array[]> {
-  //   if (userRequests.length === 0) {
-  //     return [];
-  //   }
-  //   const path = batchDataKeyPath();
-  //   const response = await this.kms.post<DataKeyResponse>(path, {users: userRequests});
-  //   return response.data.users.map();
-  // }
+  async decryptBatchKeys(request: DataKeyBatchRequest): Promise<(Uint8Array | null)[][]> {
+    if (request.users.length === 0) {
+      return new Array<Array<Uint8Array>>();
+    }
+    const path = batchDataKeyPath();
+    const response = await this.kms.post<DataKeyBatchResponse>(path, request);
+    const keyToBuffer = (value: DataKeyResponseValue) =>
+      value.key === null ? null : encoding.toBuffer(value.key, 'base64');
+    return response.data.users.map((userResponse) => userResponse.data.map(keyToBuffer));
+  }
 
-  //   private async decryptBatch(
-  //     batchData: BatchEncryptedUserDataResponse,
-  //   ): Promise<Array<BatchFieldInstances>> {
-  //     path = batchDataKeyPath;
-  //   }
+  private async decryptBatch(
+    fieldIDs: string[],
+    batchDataResponse: BatchEncryptedUserDataResponse,
+  ): Promise<Array<UserFieldInstances>> {
+    if (batchDataResponse.users.length === 0) {
+      return [];
+    }
+    // Check that only string fields are requested. We don't handle files here.
+    const hasFile = batchDataResponse.users[0].data.reduce(
+      (hasFile, field) => hasFile || (field !== null && field.object_type === 'file'),
+      false,
+    );
+    if (hasFile) {
+      throw new PrivyClientError('Batch decryption of files is not supported');
+    }
+
+    const fieldToDataKeyRequest = (
+      fieldID: string,
+      field: EncryptedUserDataResponseValue | null,
+    ) => {
+      const decryption =
+        field === null ? null : new x0.Decryption(encoding.toBuffer(field.value, 'base64'));
+      return {
+        field_id: fieldID,
+        wrapper_key_id:
+          decryption === null ? null : encoding.toString(decryption.wrapperKeyId(), 'utf8'),
+        encrypted_key:
+          decryption === null ? null : encoding.toString(decryption.encryptedDataKey(), 'base64'),
+      };
+    };
+
+    // Get data keys.
+    const dataKeyRequests: Array<DataKeyUserRequest> = batchDataResponse.users.map((user) => {
+      const dataResponses = user.data;
+      const dataKeyRequests = fieldIDs.map((fieldID, fieldIdx) =>
+        fieldToDataKeyRequest(fieldID, dataResponses[fieldIdx]),
+      );
+      return {user_id: user.user_id, data: dataKeyRequests};
+    });
+    const decryptedKeys: (Uint8Array | null)[][] = await this.decryptBatchKeys({
+      users: dataKeyRequests,
+    });
+
+    // Build decrypted field matrix.
+    const decryptedFields: (Uint8Array | null)[][] = await Promise.all(
+      batchDataResponse.users.map(async (user, userIdx): Promise<(Uint8Array | null)[]> => {
+        return await Promise.all(
+          fieldIDs.map(async (_, fieldIdx) => {
+            const ciphertext = user.data[fieldIdx].value;
+            const dataKey = decryptedKeys[userIdx][fieldIdx];
+            if (dataKey === null || ciphertext == null) {
+              return null;
+            } else {
+              // TODO(dave): Make a matrix of decryption instances beforehand.
+              const decryption = new x0.Decryption(dataKey);
+              const result = await decryption.decrypt(encoding.toBuffer(ciphertext, 'base64'));
+              return result.plaintext();
+            }
+          }),
+        );
+      }),
+    );
+
+    // Collect results into userFieldInstances.
+    const userIDs = batchDataResponse.users.map((user) => user.user_id);
+    var userFieldInstances = new Array<UserFieldInstances>();
+    userFieldInstances = userIDs.map((userID, userIdx) => {
+      const fields = batchDataResponse.users[userIdx].data;
+      const plaintext = decryptedFields[userIdx];
+      const fieldInstances = fieldIDs.map((_, fieldIdx) => {
+        if (fields[fieldIdx] === null || plaintext[fieldIdx] === null) {
+          return null;
+        } else {
+          return new FieldInstance(
+            fields[fieldIdx],
+            // TODO(dave): Is non-null assertion idiomatic?
+            plaintext[fieldIdx]!,
+            'text/plain',
+          );
+        }
+      });
+      return {user_id: userID, field_instances: fieldInstances};
+    });
+    return userFieldInstances;
+  }
 }
