@@ -8,7 +8,7 @@ export interface EncryptedUserDataResponseValue {
 }
 
 export interface EncryptedUserDataResponse {
-  data: EncryptedUserDataResponseValue[];
+  data: (EncryptedUserDataResponseValue | null)[];
 }
 
 export interface DataKeyResponseValue {

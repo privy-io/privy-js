@@ -165,7 +165,7 @@ export class PrivyClient {
       const response = await this.api.post<EncryptedUserDataResponse>(path, {data: encryptedData});
       const result = response.data.data.map((field, index) => {
         const plaintext = encoding.toBuffer(data[index].value, 'utf8');
-        return new FieldInstance(field, plaintext, 'text/plain');
+        return new FieldInstance(field!, plaintext, 'text/plain');
       });
       return typeof fields === 'string' ? result[0] : result;
     } catch (error) {
@@ -290,7 +290,7 @@ export class PrivyClient {
         ],
       });
 
-      return new FieldInstance(response.data.data[0], plaintext, blob.type);
+      return new FieldInstance(response.data.data[0]!, plaintext, blob.type);
     } catch (error) {
       throw formatPrivyError(error);
     }
@@ -380,7 +380,7 @@ export class PrivyClient {
 
   private async decrypt(
     userId: string,
-    data: EncryptedUserDataResponseValue[],
+    data: (EncryptedUserDataResponseValue | null)[],
   ): Promise<Array<FieldInstance | null>> {
     const dataWithIndex = data.map((field, index) => ({index, field}));
 
@@ -399,12 +399,12 @@ export class PrivyClient {
     const fieldsToDecrypt = stringFieldsWithIndex.map(({field, index}) => ({
       field,
       index,
-      decryption: new x0.Decryption(encoding.toBuffer(field.value, 'base64')),
+      decryption: new x0.Decryption(encoding.toBuffer(field!.value, 'base64')),
     }));
 
     // Prepare and decrypt the data keys
     const keysToDecrypt = fieldsToDecrypt.map(({field, decryption}) => ({
-      field_id: field.field_id,
+      field_id: field!.field_id,
       wrapper_key_id: encoding.toString(decryption.wrapperKeyId(), 'utf8'),
       encrypted_key: encoding.toString(decryption.encryptedDataKey(), 'base64'),
     }));
@@ -424,14 +424,14 @@ export class PrivyClient {
 
     // Maintaining order, populate the result with the (decrypted) string field values
     for (const {index, field, plaintext} of decryptedStringFields) {
-      results[index] = new FieldInstance(field, plaintext, 'text/plain');
+      results[index] = new FieldInstance(field!, plaintext, 'text/plain');
     }
 
     // Maintaining order, populate the result with the file field values
     for (const {index, field} of fileFieldsWithIndex) {
       results[index] = new FieldInstance(
-        field,
-        encoding.toBuffer(field.value, 'utf8'),
+        field!,
+        encoding.toBuffer(field!.value, 'utf8'),
         'text/plain',
       );
     }
