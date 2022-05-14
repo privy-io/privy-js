@@ -57,7 +57,7 @@ describe('Privy client', () => {
   const customSession = new CustomSession(async function authenticate() {
     const response = await axios.post<{token: string}>(
       `${process.env.PRIVY_API_URL}/auth/token`,
-      {requester_id: userID, roles: []},
+      {requester_id: userID, roles: ['admin']},
       {
         auth: {
           username: PRIVY_API_PUBLIC_KEY,
@@ -116,15 +116,19 @@ describe('Privy client', () => {
     expect(email.integrity_hash).toEqual(integrityHash);
   });
 
-  // it('batch get / put api', async () => {
-  //   let username: FieldInstance | null, email: FieldInstance | null;
-  //   let data: UserFieldInstances;
-  //   [username, email] = await client.put(userID, [
-  //     {field: 'username', value: 'tobias'},
-  //     {field: 'email', value: 'tobias@funke.com'},
-  //   ]);
+  it('batch get / put api', async () => {
+    let username: FieldInstance | null, email: FieldInstance | null;
+    let user: UserFieldInstances;
+    [username, email] = await client.put(userID, [
+      {field: 'username', value: 'tobias'},
+      {field: 'email', value: 'tobias@funke.com'},
+    ]);
 
-  //   [data] = await client.getBatch(['username'], {cursor: userID, limit: 1});
-  //   console.log(data);
-  // });
+    [user] = (await client.getBatch(['username'], {
+      cursor: userID,
+      limit: 1,
+    })) as UserFieldInstances[];
+    username = user.field_instances[0] as FieldInstance;
+    expect(username.text()).toEqual('tobias');
+  });
 });

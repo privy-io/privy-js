@@ -148,9 +148,12 @@ export class PrivyClient {
 
     try {
       const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
+      console.log('response.data', response.data);
       const decrypted = await this.decryptBatch(wrap(fields), response.data);
       return decrypted;
     } catch (error) {
+      console.log('More info');
+      console.log(error);
       throw formatPrivyError(error);
     }
   }
@@ -597,29 +600,33 @@ export class PrivyClient {
       throw new PrivyClientError('Batch decryption of files is not supported');
     }
 
-    const fieldToDataKeyRequest = (
-      fieldID: string,
-      field: EncryptedUserDataResponseValue | null,
-    ) => {
-      const decryption =
-        field === null ? null : new x0.Decryption(encoding.toBuffer(field.value, 'base64'));
-      return {
-        field_id: fieldID,
-        wrapper_key_id:
-          decryption === null ? null : encoding.toString(decryption.wrapperKeyId(), 'utf8'),
-        encrypted_key:
-          decryption === null ? null : encoding.toString(decryption.encryptedDataKey(), 'base64'),
-      };
-    };
+    // Create decryption instances.
+    const decryptionInstances = batchDataResponse.users.map((user) => {
+      const fieldDecryptions = fieldIDs.map((fieldID, fieldIdx) => {
+        const field = user.data[fieldIdx];
+        return field === null ? null : new x0.Decryption(encoding.toBuffer(field.value, 'base64'));
+      });
+      return fieldDecryptions;
+    });
 
     // Get data keys.
-    const dataKeyRequests: Array<DataKeyUserRequest> = batchDataResponse.users.map((user) => {
-      const dataResponses = user.data;
-      const dataKeyRequests = fieldIDs.map((fieldID, fieldIdx) =>
-        fieldToDataKeyRequest(fieldID, dataResponses[fieldIdx]),
-      );
-      return {user_id: user.user_id, data: dataKeyRequests};
-    });
+    const dataKeyRequests: Array<DataKeyUserRequest> = batchDataResponse.users.map(
+      (user, userIdx) => {
+        const dataKeyRequests = fieldIDs.map((fieldID, fieldIdx) => {
+          const decryption = decryptionInstances[userIdx][fieldIdx];
+          return {
+            field_id: fieldID,
+            wrapper_key_id:
+              decryption === null ? null : encoding.toString(decryption.wrapperKeyId(), 'utf8'),
+            encrypted_key:
+              decryption === null
+                ? null
+                : encoding.toString(decryption.encryptedDataKey(), 'base64'),
+          };
+        });
+        return {user_id: user.user_id, data: dataKeyRequests};
+      },
+    );
     const decryptedKeys: (Uint8Array | null)[][] = await this.decryptBatchKeys({
       users: dataKeyRequests,
     });
@@ -629,15 +636,17 @@ export class PrivyClient {
       batchDataResponse.users.map(async (user, userIdx): Promise<(Uint8Array | null)[]> => {
         return await Promise.all(
           fieldIDs.map(async (_, fieldIdx) => {
-            const ciphertext = user.data[fieldIdx].value;
             const dataKey = decryptedKeys[userIdx][fieldIdx];
-            if (dataKey === null || ciphertext == null) {
+            if (dataKey === null) {
               return null;
             } else {
-              // TODO(dave): Make a matrix of decryption instances beforehand.
-              const decryption = new x0.Decryption(dataKey);
-              const result = await decryption.decrypt(encoding.toBuffer(ciphertext, 'base64'));
-              return result.plaintext();
+              const decryption = decryptionInstances[userIdx][fieldIdx];
+              if (decryption === null) {
+                return null;
+              } else {
+                const result = await decryption.decrypt(dataKey);
+                return result.plaintext();
+              }
             }
           }),
         );
