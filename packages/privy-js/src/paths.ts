@@ -16,7 +16,7 @@ export interface BatchOptions {
 }
 
 export const batchUserDataPath = (fields: string[], options: BatchOptions) => {
-  const path = `/batch_data`;
+  const path = `/data`;
   const query = [];
 
   if (options.cursor) {

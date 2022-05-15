@@ -129,7 +129,6 @@ export class PrivyClient {
       const decrypted = await this.decrypt(userId, response.data.data);
       return typeof fields === 'string' ? decrypted[0] : decrypted;
     } catch (error) {
-      console.log('Error:', error);
       throw formatPrivyError(error);
     }
   }
@@ -148,11 +147,10 @@ export class PrivyClient {
 
     try {
       const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
-      console.log('response.data', response.data);
       const decrypted = await this.decryptBatch(wrap(fields), response.data);
       return decrypted;
     } catch (error) {
-      console.log('More info');
+      console.log('Additional error info');
       console.log(error);
       throw formatPrivyError(error);
     }
@@ -592,6 +590,7 @@ export class PrivyClient {
       return [];
     }
     // Check that only string fields are requested. We don't handle files here.
+    // TODO(dave): This check actually needs to be done for every user, since we may get nulls here.
     const hasFile = batchDataResponse.users[0].data.reduce(
       (hasFile, field) => hasFile || (field !== null && field.object_type === 'file'),
       false,
@@ -627,13 +626,14 @@ export class PrivyClient {
         return {user_id: user.user_id, data: dataKeyRequests};
       },
     );
+
     const decryptedKeys: (Uint8Array | null)[][] = await this.decryptBatchKeys({
       users: dataKeyRequests,
     });
 
     // Build decrypted field matrix.
     const decryptedFields: (Uint8Array | null)[][] = await Promise.all(
-      batchDataResponse.users.map(async (user, userIdx): Promise<(Uint8Array | null)[]> => {
+      batchDataResponse.users.map(async (_, userIdx): Promise<(Uint8Array | null)[]> => {
         return await Promise.all(
           fieldIDs.map(async (_, fieldIdx) => {
             const dataKey = decryptedKeys[userIdx][fieldIdx];

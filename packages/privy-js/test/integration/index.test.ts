@@ -115,20 +115,60 @@ describe('Privy client', () => {
     expect(email.text()).toEqual('tobias@funke.com');
     expect(email.integrity_hash).toEqual(integrityHash);
   });
+});
+
+describe('Privy admin client', () => {
+  // In production code, this would likely be setup to hit
+  // a backend that would then call Privy so that the API
+  // secret key is not exposed on clients. However, any
+  // async function that returns a string JWT that Privy
+  // can recognize the signature of is valid.
+  const customSession = new CustomSession(async function authenticate() {
+    const response = await axios.post<{token: string}>(
+      `${process.env.PRIVY_API_URL}/auth/token`,
+      {requester_id: 'admin_id', roles: ['admin']},
+      {
+        auth: {
+          username: PRIVY_API_PUBLIC_KEY,
+          password: PRIVY_API_SECRET_KEY,
+        },
+      },
+    );
+    return response.data.token;
+  });
+
+  const client = new PrivyClient({
+    apiURL: PRIVY_API,
+    kmsURL: PRIVY_KMS,
+    session: customSession,
+  });
 
   it('batch get / put api', async () => {
+    const user0 = `0x${Date.now()}`;
     let username: FieldInstance | null, email: FieldInstance | null;
-    let user: UserFieldInstances;
-    [username, email] = await client.put(userID, [
+    [username, email] = await client.put(user0, [
       {field: 'username', value: 'tobias'},
       {field: 'email', value: 'tobias@funke.com'},
     ]);
+    const user1 = `0x${Date.now()}`;
+    [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
 
-    [user] = (await client.getBatch(['username'], {
-      cursor: userID,
-      limit: 1,
+    const users = (await client.getBatch(['username', 'email'], {
+      cursor: user1,
+      limit: 2,
     })) as UserFieldInstances[];
-    username = user.field_instances[0] as FieldInstance;
+    expect(users.length).toEqual(2);
+    // Check user0's data.
+    expect(users[0].field_instances.length).toEqual(2);
+    username = users[0].field_instances[0] as FieldInstance;
+    expect(username.text()).toEqual('michael');
+    email = users[0].field_instances[1] as FieldInstance;
+    expect(email).toEqual(null);
+    // Check user1's data.
+    expect(users[1].field_instances.length).toEqual(2);
+    username = users[1].field_instances[0] as FieldInstance;
     expect(username.text()).toEqual('tobias');
+    email = users[1].field_instances[1] as FieldInstance;
+    expect(email.text()).toEqual('tobias@funke.com');
   });
 });
