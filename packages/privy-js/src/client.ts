@@ -39,7 +39,7 @@ async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
  * The Privy client performs operations against the Privy API.
  *
  * ```typescript
- * import PrivyClient from '@privy-io/privy-js';
+ * import {PrivyClient} from '@privy-io/privy-js';
  * ```
  */
 export class PrivyClient {
