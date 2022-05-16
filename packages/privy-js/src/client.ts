@@ -150,8 +150,6 @@ export class PrivyClient {
       const decrypted = await this.decryptBatch(wrap(fields), response.data);
       return decrypted;
     } catch (error) {
-      console.log('Additional error info');
-      console.log(error);
       throw formatPrivyError(error);
     }
   }
@@ -590,19 +588,14 @@ export class PrivyClient {
       return [];
     }
     // Check that only string fields are requested. We don't handle files here.
-    // TODO(dave): This check actually needs to be done for every user, since we may get nulls here.
-    const hasFile = batchDataResponse.users[0].data.reduce(
-      (hasFile, field) => hasFile || (field !== null && field.object_type === 'file'),
-      false,
-    );
-    if (hasFile) {
-      throw new PrivyClientError('Batch decryption of files is not supported');
-    }
-
     // Create decryption instances.
     const decryptionInstances = batchDataResponse.users.map((user) => {
-      const fieldDecryptions = fieldIDs.map((fieldID, fieldIdx) => {
+      const fieldDecryptions = fieldIDs.map((_, fieldIdx) => {
         const field = user.data[fieldIdx];
+        // Check that only non-files are attempted to be decrypted.
+        if (field !== null && field.object_type === 'file') {
+          throw new PrivyClientError('Batch decryption of files is not supported');
+        }
         return field === null ? null : new x0.Decryption(encoding.toBuffer(field.value, 'base64'));
       });
       return fieldDecryptions;

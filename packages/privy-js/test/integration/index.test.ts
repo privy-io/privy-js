@@ -56,7 +56,7 @@ describe('Privy client', () => {
   const customSession = new CustomSession(async function authenticate() {
     const response = await axios.post<{token: string}>(
       `${process.env.PRIVY_API_URL}/auth/token`,
-      {requester_id: userID, roles: ['admin']},
+      {requester_id: userID, roles: []},
       {
         auth: {
           username: PRIVY_API_PUBLIC_KEY,
