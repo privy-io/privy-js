@@ -2,7 +2,7 @@
 
 Privy's Node client allows you to interact with the Privy API from server-side Node applications.
 
-For interacting with user data in the browser, use [@privy-io/privy-js](https://www.npmjs.com/package/@privy-io/privy-js).
+For interacting with user data in the browser, use [@privy-io/privy-browser](https://www.npmjs.com/package/@privy-io/privy-browser).
 
 ## Requirements
 

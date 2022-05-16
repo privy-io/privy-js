@@ -1,5 +1,5 @@
 import axios from 'axios';
-import PrivyClient, {FieldInstance, UserFieldInstances, CustomSession} from '../../src';
+import {PrivyClient, FieldInstance, UserFieldInstances, CustomSession} from '../../src';
 
 const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
@@ -46,7 +46,6 @@ const fetchAPIKeys = async () => {
 beforeAll(async () => {
   await fetchAPIKeys();
 });
-
 describe('Privy client', () => {
   const userID = `0x${Date.now()}`;
   // In production code, this would likely be setup to hit

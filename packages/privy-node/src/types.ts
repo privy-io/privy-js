@@ -8,42 +8,15 @@ export interface EncryptedUserDataResponseValue {
 }
 
 export interface EncryptedUserDataResponse {
-  user_id: string;
-  data: (EncryptedUserDataResponseValue | null)[];
-}
-
-// BatchEncryptedUserDataResponse is densely populated i.e. it contains an entry for every user and field, even if the field has no data.
-export interface BatchEncryptedUserDataResponse {
-  users: EncryptedUserDataResponse[];
+  data: EncryptedUserDataResponseValue[];
 }
 
 export interface DataKeyResponseValue {
   key: string; // Data key as base64 string.
 }
 
-export interface DataKeyUserResponse {
-  user_id: string;
+export interface DataKeyResponse {
   data: DataKeyResponseValue[];
-}
-
-export interface DataKeyBatchResponse {
-  users: DataKeyUserResponse[];
-}
-
-export interface DataKeyRequest {
-  field_id: string;
-  wrapper_key_id: string | null;
-  encrypted_key: string | null;
-}
-
-// DataKeyUserRequest must be densely populated i.e. it contains an entry for every user and field, even if the field has no data.
-export interface DataKeyUserRequest {
-  user_id: string;
-  data: DataKeyRequest[];
-}
-
-export interface DataKeyBatchRequest {
-  users: DataKeyUserRequest[];
 }
 
 export interface EncryptedUserDataRequestValue {

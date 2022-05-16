@@ -1,16 +1,16 @@
-# privy-js
+# @privy-io/privy-browser
 
 Browser client for the Privy API.
 
 https://www.privy.io
 
 ![build](https://github.com/privy-io/privy-js/actions/workflows/tests.yml/badge.svg)
-[![npm version](https://badge.fury.io/js/@privy-io%2Fprivy-js.svg)](https://www.npmjs.com/package/@privy-io/privy-js)
+[![npm version](https://badge.fury.io/js/@privy-io%2Fbrowser.svg)](https://www.npmjs.com/package/@privy-io/privy-browser)
 
 ## Installation
 
 ```
-npm i @privy-io/privy-js
+npm i @privy-io/privy-browser
 ```
 
 ## Basic usage
@@ -19,7 +19,7 @@ Initialize the Privy client using a session that can fetch tokens from Privy thr
 
 ```typescript
 import axios from 'axios';
-import PrivyClient, {CustomSession} from '@privy-io/privy-js';
+import {PrivyClient, CustomSession} from '@privy-io/privy-browser';
 
 const session = new CustomSession(async function authenticate() {
   const response = await axios.post<{token: string}>(

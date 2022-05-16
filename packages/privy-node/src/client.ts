@@ -1,12 +1,9 @@
-import md5 from 'md5';
+import FormData from 'form-data';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {Http} from './http';
 import {Session} from './sessions';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 import {
-  batchDataKeyPath,
-  BatchOptions,
-  batchUserDataPath,
   dataKeyPath,
   fileDownloadsPath,
   fileUploadsPath,
@@ -16,22 +13,17 @@ import {
 } from './paths';
 import {wrap} from './utils';
 import {
-  BatchEncryptedUserDataResponse,
-  DataKeyUserResponse,
+  DataKeyResponse,
   EncryptedUserDataResponse,
   EncryptedUserDataResponseValue,
   EncryptedUserDataRequestValue,
   FileMetadata,
   WrapperKeyResponse,
-  DataKeyUserRequest,
-  DataKeyRequest,
-  DataKeyBatchRequest,
-  DataKeyBatchResponse,
-  DataKeyResponseValue,
 } from './types';
-import {FieldInstance, UserFieldInstances} from './fieldInstance';
+import {FieldInstance} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
-import encoding from './encoding';
+import encoding, {wrapAsBuffer} from './encoding';
+import {md5} from './hash';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
@@ -39,16 +31,11 @@ import encoding from './encoding';
 // dynamic, at least for decryption.
 const x0 = CryptoEngine(CryptoVersion.x0);
 
-async function blobToUint8Array(blob: Blob): Promise<Uint8Array> {
-  const arrayBuffer = await blob.arrayBuffer();
-  return new Uint8Array(arrayBuffer);
-}
-
 /**
  * The Privy client performs operations against the Privy API.
  *
  * ```typescript
- * import {PrivyClient} from '@privy-io/privy-browser';
+ * import PrivyClient from '@privy-io/privy-js';
  * ```
  */
 export class PrivyClient {
@@ -134,29 +121,6 @@ export class PrivyClient {
   }
 
   /**
-   * Get user data for multiple users from the Privy API.
-   *
-   * @param fields: Array of string field names.
-   * @param options Options for the batch to collect, i.e. an optional cursor and limit.
-   */
-  async getBatch(
-    fields: string | string[],
-    options: BatchOptions = {},
-  ): Promise<Array<UserFieldInstances>> {
-    const path = batchUserDataPath(wrap(fields), options);
-
-    try {
-      const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
-      const decrypted = await this.decryptBatch(wrap(fields), response.data);
-      return decrypted;
-    } catch (error) {
-      console.log('Additional error info');
-      console.log(error);
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
    * Updates data for a single field for a given user.
    *
    * ```typescript
@@ -197,7 +161,7 @@ export class PrivyClient {
       const response = await this.api.post<EncryptedUserDataResponse>(path, {data: encryptedData});
       const result = response.data.data.map((field, index) => {
         const plaintext = encoding.toBuffer(data[index].value, 'utf8');
-        return new FieldInstance(field!, plaintext, 'text/plain');
+        return new FieldInstance(field, plaintext, 'text/plain');
       });
       return typeof fields === 'string' ? result[0] : result;
     } catch (error) {
@@ -251,16 +215,16 @@ export class PrivyClient {
         throw new PrivyClientError(`${field.field_id} is not a file`);
       }
 
-      const downloadResponse = await this.api.get<Blob>(
+      const downloadResponse = await this.api.get<ArrayBuffer>(
         fileDownloadsPath(field.user_id, field.field_id, field.value),
         {
-          responseType: 'blob',
+          responseType: 'arraybuffer',
         },
       );
 
-      const blob = downloadResponse.data;
+      const ciphertext = new Uint8Array(downloadResponse.data);
       const contentType = downloadResponse.headers['privy-file-content-type'];
-      const plaintext = await this.decryptFile(userId, field, blob);
+      const plaintext = await this.decryptFile(userId, field, ciphertext);
 
       return new FieldInstance(field, plaintext, contentType);
     } catch (error) {
@@ -286,10 +250,13 @@ export class PrivyClient {
    * @param blob The plaintext contents of the file in a Blob.
    * @returns {@link FieldInstance} for the uploaded file.
    */
-  async putFile(userId: string, field: string, blob: Blob): Promise<FieldInstance> {
+  async putFile(
+    userId: string,
+    field: string,
+    plaintext: Buffer,
+    contentType: string,
+  ): Promise<FieldInstance> {
     try {
-      const plaintext = await blobToUint8Array(blob);
-
       const {ciphertext, contentMD5, wrapperKeyId, integrityHash} = await this.encryptFile(
         userId,
         field,
@@ -297,16 +264,23 @@ export class PrivyClient {
       );
 
       const formData = new FormData();
-      formData.append('content_type', blob.type);
+      formData.append('content_type', contentType);
       formData.append('file_id', integrityHash);
       formData.append('content_md5', contentMD5);
       formData.append('wrapper_key_id', wrapperKeyId);
-      formData.append('file', new Blob([ciphertext], {type: 'application/octet-stream'}));
+      formData.append('file', wrapAsBuffer(ciphertext), {
+        contentType: 'application/octet-stream',
+        // A non-empty filename is required in order for this multipart field to be recognized as a file.
+        // This value is ignored by the server.
+        filename: 'file',
+      });
 
       const uploadResponse = await this.api.post<FileMetadata>(
         fileUploadsPath(userId, field),
         formData,
-        undefined,
+        {
+          headers: formData.getHeaders(),
+        },
       );
 
       const file = uploadResponse.data;
@@ -322,7 +296,7 @@ export class PrivyClient {
         ],
       });
 
-      return new FieldInstance(response.data.data[0]!, plaintext, blob.type);
+      return new FieldInstance(response.data.data[0], plaintext, contentType);
     } catch (error) {
       throw formatPrivyError(error);
     }
@@ -361,15 +335,14 @@ export class PrivyClient {
         const plaintext = await this.decryptAndVerify(field, ciphertext, integrityHash);
         return new FieldInstance(field, plaintext, 'text/plain');
       } else {
-        const downloadResponse = await this.api.get<Blob>(
+        const downloadResponse = await this.api.get<ArrayBuffer>(
           fileDownloadsPath(field.user_id, field.field_id, field.value),
           {
-            responseType: 'blob',
+            responseType: 'arraybuffer',
           },
         );
-        const blob = downloadResponse.data;
+        const ciphertext = new Uint8Array(downloadResponse.data);
         const contentType = downloadResponse.headers['privy-file-content-type'];
-        const ciphertext = await blobToUint8Array(blob);
         const plaintext = await this.decryptAndVerify(field, ciphertext, integrityHash);
         return new FieldInstance(field, plaintext, contentType);
       }
@@ -412,7 +385,7 @@ export class PrivyClient {
 
   private async decrypt(
     userId: string,
-    data: (EncryptedUserDataResponseValue | null)[],
+    data: EncryptedUserDataResponseValue[],
   ): Promise<Array<FieldInstance | null>> {
     const dataWithIndex = data.map((field, index) => ({index, field}));
 
@@ -431,16 +404,16 @@ export class PrivyClient {
     const fieldsToDecrypt = stringFieldsWithIndex.map(({field, index}) => ({
       field,
       index,
-      decryption: new x0.Decryption(encoding.toBuffer(field!.value, 'base64')),
+      decryption: new x0.Decryption(encoding.toBuffer(field.value, 'base64')),
     }));
 
     // Prepare and decrypt the data keys
     const keysToDecrypt = fieldsToDecrypt.map(({field, decryption}) => ({
-      field_id: field!.field_id,
+      field_id: field.field_id,
       wrapper_key_id: encoding.toString(decryption.wrapperKeyId(), 'utf8'),
       encrypted_key: encoding.toString(decryption.encryptedDataKey(), 'base64'),
     }));
-    const decryptedKeys = await this.decryptKeys({user_id: userId, data: keysToDecrypt});
+    const decryptedKeys = await this.decryptKeys(userId, keysToDecrypt);
 
     // Using the data keys from previous step, decrypt all fields in need of decryption
     const decryptedStringFields = await Promise.all(
@@ -456,14 +429,14 @@ export class PrivyClient {
 
     // Maintaining order, populate the result with the (decrypted) string field values
     for (const {index, field, plaintext} of decryptedStringFields) {
-      results[index] = new FieldInstance(field!, plaintext, 'text/plain');
+      results[index] = new FieldInstance(field, plaintext, 'text/plain');
     }
 
     // Maintaining order, populate the result with the file field values
     for (const {index, field} of fileFieldsWithIndex) {
       results[index] = new FieldInstance(
-        field!,
-        encoding.toBuffer(field!.value, 'utf8'),
+        field,
+        encoding.toBuffer(field.value, 'utf8'),
         'text/plain',
       );
     }
@@ -499,8 +472,11 @@ export class PrivyClient {
     };
   }
 
-  private async decryptFile(userId: string, field: EncryptedUserDataResponseValue, blob: Blob) {
-    const uint8Array = await blobToUint8Array(blob);
+  private async decryptFile(
+    userId: string,
+    field: EncryptedUserDataResponseValue,
+    uint8Array: Uint8Array,
+  ) {
     const decryption = new x0.Decryption(uint8Array);
 
     // Prepare and decrypt the data keys
@@ -510,7 +486,7 @@ export class PrivyClient {
       encrypted_key: encoding.toString(decryption.encryptedDataKey(), 'base64'),
     };
 
-    const [dataKey] = await this.decryptKeys({user_id: userId, data: [keyToDecrypt]});
+    const [dataKey] = await this.decryptKeys(userId, [keyToDecrypt]);
     const result = await decryption.decrypt(dataKey);
 
     return result.plaintext();
@@ -529,7 +505,7 @@ export class PrivyClient {
       encrypted_key: encoding.toString(decryption.encryptedDataKey(), 'base64'),
     };
 
-    const [dataKey] = await this.decryptKeys({user_id: field.user_id, data: [keyToDecrypt]});
+    const [dataKey] = await this.decryptKeys(field.user_id, [keyToDecrypt]);
 
     const result = await decryption.decrypt(dataKey);
 
@@ -562,112 +538,15 @@ export class PrivyClient {
     }));
   }
 
-  async decryptKeys(request: DataKeyUserRequest): Promise<Uint8Array[]> {
-    if (request.data.length === 0) {
+  async decryptKeys(
+    userId: string,
+    keys: {field_id: string; wrapper_key_id: string; encrypted_key: string}[],
+  ): Promise<Uint8Array[]> {
+    if (keys.length === 0) {
       return [];
     }
-    const path = dataKeyPath(request.user_id);
-    const response = await this.kms.post<DataKeyUserResponse>(path, request);
+    const path = dataKeyPath(userId);
+    const response = await this.kms.post<DataKeyResponse>(path, {data: keys});
     return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
-  }
-
-  async decryptBatchKeys(request: DataKeyBatchRequest): Promise<(Uint8Array | null)[][]> {
-    if (request.users.length === 0) {
-      return new Array<Array<Uint8Array>>();
-    }
-    const path = batchDataKeyPath();
-    const response = await this.kms.post<DataKeyBatchResponse>(path, request);
-    const keyToBuffer = (value: DataKeyResponseValue) =>
-      value.key === null ? null : encoding.toBuffer(value.key, 'base64');
-    return response.data.users.map((userResponse) => userResponse.data.map(keyToBuffer));
-  }
-
-  private async decryptBatch(
-    fieldIDs: string[],
-    batchDataResponse: BatchEncryptedUserDataResponse,
-  ): Promise<Array<UserFieldInstances>> {
-    if (batchDataResponse.users.length === 0) {
-      return [];
-    }
-    // Check that only string fields are requested. We don't handle files here.
-    // TODO(dave): This check actually needs to be done for every user, since we may get nulls here.
-    const hasFile = batchDataResponse.users[0].data.reduce(
-      (hasFile, field) => hasFile || (field !== null && field.object_type === 'file'),
-      false,
-    );
-    if (hasFile) {
-      throw new PrivyClientError('Batch decryption of files is not supported');
-    }
-
-    // Create decryption instances.
-    const decryptionInstances = batchDataResponse.users.map((user) => {
-      const fieldDecryptions = fieldIDs.map((fieldID, fieldIdx) => {
-        const field = user.data[fieldIdx];
-        return field === null ? null : new x0.Decryption(encoding.toBuffer(field.value, 'base64'));
-      });
-      return fieldDecryptions;
-    });
-
-    // Get data keys.
-    const dataKeyRequests: Array<DataKeyUserRequest> = batchDataResponse.users.map(
-      (user, userIdx) => {
-        const dataKeyRequests = fieldIDs.map((fieldID, fieldIdx) => {
-          const decryption = decryptionInstances[userIdx][fieldIdx];
-          return {
-            field_id: fieldID,
-            wrapper_key_id:
-              decryption === null ? null : encoding.toString(decryption.wrapperKeyId(), 'utf8'),
-            encrypted_key:
-              decryption === null
-                ? null
-                : encoding.toString(decryption.encryptedDataKey(), 'base64'),
-          };
-        });
-        return {user_id: user.user_id, data: dataKeyRequests};
-      },
-    );
-
-    const decryptedKeys: (Uint8Array | null)[][] = await this.decryptBatchKeys({
-      users: dataKeyRequests,
-    });
-
-    // Build decrypted field matrix.
-    const decryptedFields: (Uint8Array | null)[][] = await Promise.all(
-      batchDataResponse.users.map(async (_, userIdx): Promise<(Uint8Array | null)[]> => {
-        return await Promise.all(
-          fieldIDs.map(async (_, fieldIdx) => {
-            const dataKey = decryptedKeys[userIdx][fieldIdx];
-            if (dataKey === null) {
-              return null;
-            } else {
-              const decryption = decryptionInstances[userIdx][fieldIdx];
-              if (decryption === null) {
-                return null;
-              } else {
-                const result = await decryption.decrypt(dataKey);
-                return result.plaintext();
-              }
-            }
-          }),
-        );
-      }),
-    );
-
-    // Collect results into userFieldInstances.
-    const userIDs = batchDataResponse.users.map((user) => user.user_id);
-    var userFieldInstances = new Array<UserFieldInstances>();
-    userFieldInstances = userIDs.map((userID, userIdx) => {
-      const fields = batchDataResponse.users[userIdx].data;
-      const plaintext = decryptedFields[userIdx];
-      const fieldInstances = fieldIDs.map((_, fieldIdx) => {
-        if (fields[fieldIdx] === null || plaintext[fieldIdx] === null) {
-          return null;
-        } else {
-          return new FieldInstance(fields[fieldIdx]!, plaintext[fieldIdx]!, 'text/plain');
-        }
-      });
-      return {user_id: userID, field_instances: fieldInstances};
-    });
-    return userFieldInstances;
   }
 }
