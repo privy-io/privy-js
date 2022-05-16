@@ -10,7 +10,7 @@ const PEM_FOOTER = '-----END PUBLIC KEY-----';
 
 function derToPEMEncodedString(key: Uint8Array): string {
   // 1. Convert DER Uint8Array to base64-encoded string.
-  const base64 = Buffer.from(key.buffer).toString('base64');
+  const base64 = Buffer.from(key.buffer, key.byteOffset, key.byteLength).toString('base64');
 
   // 2. Split base64 string into chunks according to PEM format.
   const chunks = base64.match(/.{1,64}/g) as string[];
