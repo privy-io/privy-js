@@ -1,5 +1,5 @@
 {
-  "name": "@privy-io/privy-js",
+  "name": "@privy-io/privy-browser",
   "version": "0.0.2",
   "description": "Browser client for the Privy API",
   "main": "./dist/index.js",

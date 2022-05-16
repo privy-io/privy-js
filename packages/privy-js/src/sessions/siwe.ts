@@ -63,7 +63,7 @@ Resources:
  * Privy's backend is able to issue access tokens using the [Sign-In With Ethereum](https://eips.ethereum.org/EIPS/eip-4361) spec. This enables developers to use Privy for reading/writing user data *without* hosting their own backend to handle authentication. A big win for reducing operational complexity!
  *
  * ```typescript
- * import {SiweSession} from '@privy-io/privy-js';
+ * import {SiweSession} from '@privy-io/privy-browser';
  * ```
  */
 export class SiweSession extends CustomSession {

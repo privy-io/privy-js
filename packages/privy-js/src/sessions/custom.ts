@@ -18,7 +18,7 @@ const TOKEN_STORAGE_KEY = 'privy:token';
  * `CustomSession` implements the {@link Session} interface. `CustomSession` can be used to authenticate to Privy through your own backend.
  *
  * ```typescript
- * import {CustomSession} from '@privy-io/privy-js';
+ * import {CustomSession} from '@privy-io/privy-browser';
  * ```
  */
 export class CustomSession implements Session {
