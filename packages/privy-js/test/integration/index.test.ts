@@ -152,22 +152,29 @@ describe('Privy admin client', () => {
     const user1 = `0x${Date.now()}`;
     [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
 
-    const users = (await client.getBatch(['username', 'email'], {
+    // Test missing cursor behavior.
+    let users = (await client.getBatch(['username', 'email'], {
+      limit: 2,
+    })) as UserFieldInstances[];
+    expect(users.length).toEqual(2);
+
+    // Test data returned when cursor is provided.
+    users = (await client.getBatch(['username', 'email'], {
       cursor: user1,
       limit: 2,
     })) as UserFieldInstances[];
     expect(users.length).toEqual(2);
     // Check user0's data.
-    expect(users[0].field_instances.length).toEqual(2);
-    username = users[0].field_instances[0] as FieldInstance;
+    expect(users[0].data.length).toEqual(2);
+    username = users[0].data[0] as FieldInstance;
     expect(username.text()).toEqual('michael');
-    email = users[0].field_instances[1] as FieldInstance;
+    email = users[0].data[1] as FieldInstance;
     expect(email).toEqual(null);
     // Check user1's data.
-    expect(users[1].field_instances.length).toEqual(2);
-    username = users[1].field_instances[0] as FieldInstance;
+    expect(users[1].data.length).toEqual(2);
+    username = users[1].data[0] as FieldInstance;
     expect(username.text()).toEqual('tobias');
-    email = users[1].field_instances[1] as FieldInstance;
+    email = users[1].data[1] as FieldInstance;
     expect(email.text()).toEqual('tobias@funke.com');
   });
 });

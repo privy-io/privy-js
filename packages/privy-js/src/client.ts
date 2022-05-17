@@ -5,7 +5,6 @@ import {Session} from './sessions';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 import {
   batchDataKeyPath,
-  BatchOptions,
   batchUserDataPath,
   dataKeyPath,
   fileDownloadsPath,
@@ -16,6 +15,7 @@ import {
 } from './paths';
 import {wrap} from './utils';
 import {
+  BatchOptions,
   BatchEncryptedUserDataResponse,
   DataKeyUserResponse,
   EncryptedUserDataResponse,
@@ -24,7 +24,6 @@ import {
   FileMetadata,
   WrapperKeyResponse,
   DataKeyUserRequest,
-  DataKeyRequest,
   DataKeyBatchRequest,
   DataKeyBatchResponse,
   DataKeyResponseValue,
@@ -134,10 +133,12 @@ export class PrivyClient {
   }
 
   /**
-   * Get user data for multiple users from the Privy API.
+   * Get a batch of admin-accessible user data from the Privy API, indexed by user ID.
    *
-   * @param fields: Array of string field names.
-   * @param options Options for the batch to collect, i.e. an optional cursor and limit.
+   * @param fields: String field name or an array of string field names.
+   * @param options Optional object containing batch request configuration.
+   * @param options.cursor Optional user ID to start from. Returned by previous call to `getBatch`.
+   * @param options.limit Optional maximum number of users to return.
    */
   async getBatch(
     fields: string | string[],
@@ -569,6 +570,12 @@ export class PrivyClient {
     return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
   }
 
+  /**
+   * Calls the KMS to decrypt the given data keys.
+   * @param request The DataKeyBatchRequest to send to the KMS.
+   * @returns 2-D Array of decrypted batch keys ordered by the same ordering of user, field as the
+   * request, mapping to the decrypted key if it exists or `null` otherwise.
+   */
   async decryptBatchKeys(request: DataKeyBatchRequest): Promise<(Uint8Array | null)[][]> {
     if (request.users.length === 0) {
       return new Array<Array<Uint8Array>>();
@@ -580,6 +587,13 @@ export class PrivyClient {
     return response.data.users.map((userResponse) => userResponse.data.map(keyToBuffer));
   }
 
+  /**
+   * Decrypts the given encrypted batch data response and returns an array of UserFieldInstances in the
+   * same order as the response.
+   * @param fieldIDs The field IDs of the fields to decrypt.
+   * @param batchDataResponse The response from the API with encrypted data.
+   * @returns Array of UserFieldInstances in the same order as the response.
+   */
   private async decryptBatch(
     fieldIDs: string[],
     batchDataResponse: BatchEncryptedUserDataResponse,
@@ -659,7 +673,7 @@ export class PrivyClient {
           return new FieldInstance(fields[fieldIdx]!, plaintext[fieldIdx]!, 'text/plain');
         }
       });
-      return {user_id: userID, field_instances: fieldInstances};
+      return {user_id: userID, data: fieldInstances};
     });
     return userFieldInstances;
   }

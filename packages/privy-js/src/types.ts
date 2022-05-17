@@ -12,7 +12,8 @@ export interface EncryptedUserDataResponse {
   data: (EncryptedUserDataResponseValue | null)[];
 }
 
-// BatchEncryptedUserDataResponse is densely populated i.e. it contains an entry for every user and field, even if the field has no data.
+// BatchEncryptedUserDataResponse is densely populated i.e. it contains an entry for every user
+// and field, even if the field has no data.
 export interface BatchEncryptedUserDataResponse {
   users: EncryptedUserDataResponse[];
 }
@@ -36,7 +37,8 @@ export interface DataKeyRequest {
   encrypted_key: string | null;
 }
 
-// DataKeyUserRequest must be densely populated i.e. it contains an entry for every user and field, even if the field has no data.
+// DataKeyUserRequest must be densely populated i.e. it contains an entry for every user and
+// field, even if the encrypted_key in DataKeyRequest is null.
 export interface DataKeyUserRequest {
   user_id: string;
   data: DataKeyRequest[];
@@ -71,4 +73,9 @@ export interface FileMetadata {
   content_type: string;
   commitment_id: string;
   created_at: number;
+}
+
+export interface BatchOptions {
+  cursor?: string;
+  limit?: number;
 }

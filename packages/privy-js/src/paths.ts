@@ -1,19 +1,16 @@
+import {BatchOptions} from './types';
+
 export const userDataPath = (userId: string, fields?: string[]) => {
   const path = `/users/${userId}/data`;
   const query = ['new=t'];
 
-  if (Array.isArray(fields) && fields.length > 0) {
+  if (fields && fields.length > 0) {
     const uriEncodedFields = fields.map(encodeURIComponent);
     query.push(`fields=${uriEncodedFields.join(',')}`);
   }
 
   return `${path}?${query.join('&')}`;
 };
-
-export interface BatchOptions {
-  cursor?: string;
-  limit?: number;
-}
 
 export const batchUserDataPath = (fields: string[], options: BatchOptions) => {
   const path = `/data`;

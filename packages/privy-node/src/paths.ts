@@ -2,7 +2,7 @@ export const userDataPath = (userId: string, fields?: string[]) => {
   const path = `/users/${userId}/data`;
   const query = ['new=t'];
 
-  if (Array.isArray(fields) && fields.length > 0) {
+  if (fields && fields.length > 0) {
     const uriEncodedFields = fields.map(encodeURIComponent);
     query.push(`fields=${uriEncodedFields.join(',')}`);
   }

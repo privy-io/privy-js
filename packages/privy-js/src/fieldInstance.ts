@@ -3,7 +3,7 @@ import {EncryptedUserDataResponseValue} from './types';
 
 export type UserFieldInstances = {
   user_id: string;
-  field_instances: (FieldInstance | null)[];
+  data: (FieldInstance | null)[];
 };
 
 export class FieldInstance {
