@@ -7,4 +7,5 @@ export {PublicSession} from './sessions/public';
 
 export {FieldInstance} from './fieldInstance';
 
+
 export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';
