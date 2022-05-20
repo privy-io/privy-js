@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import {SignJWT} from 'jose';
 import nacl from 'tweetnacl';
 import {AccessTokenClaims} from './model/data';
+import encoding from './encoding';
 
 const secondsSinceEpoch = (): number => {
   return Math.floor(new Date().getTime() / 1000);
@@ -48,7 +49,7 @@ export const createAccessTokenClaims = (
  */
 export const jwtKeyFromApiSecret = (apiSecret: string): crypto.KeyObject => {
   // Decode from URL-safe base64.
-  const apiSecretBuffer = Buffer.from(apiSecret, 'base64');
+  const apiSecretBuffer = encoding.toBuffer(apiSecret, 'base64');
 
   // Generate the signing key pair deterministicaly from the secret.
   const keyPair = nacl.sign.keyPair.fromSeed(apiSecretBuffer);
@@ -56,8 +57,8 @@ export const jwtKeyFromApiSecret = (apiSecret: string): crypto.KeyObject => {
   // Convert raw Ed25519 key buffers into Node crypto KeyObjects.
   const privateKeyJwk = {
     crv: 'Ed25519',
-    d: Buffer.from(keyPair.secretKey.slice(0, 32)).toString('base64'),
-    x: Buffer.from(keyPair.publicKey).toString('base64'),
+    d: encoding.toString(keyPair.secretKey.slice(0, 32), 'base64'),
+    x: encoding.toString(keyPair.publicKey, 'base64'),
     kty: 'OKP',
   };
 

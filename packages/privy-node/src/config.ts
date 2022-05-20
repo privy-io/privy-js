@@ -12,7 +12,7 @@ import {
   UpdateFieldRequest,
   EncryptedAliasRequestValue,
 } from './model/requests';
-import {wrapAsBuffer} from './encoding';
+import encoding from './encoding';
 import {mapPairs} from './utils';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {AliasKeyResponse, EncryptedAliasResponse, GroupUsersResponse} from './model/responses';
@@ -145,8 +145,8 @@ export class PrivyConfig {
       baseURL: this._kmsRoute,
     });
     return {
-      id: Buffer.from(response.data.id, 'utf8'),
-      publicKey: Buffer.from(response.data.public_key, 'base64'),
+      id: encoding.toBuffer(response.data.id, 'utf8'),
+      publicKey: encoding.toBuffer(response.data.public_key, 'base64'),
       algorithm: response.data.algorithm,
     };
   }
@@ -167,14 +167,14 @@ export class PrivyConfig {
     const path = aliasKeyPath();
     const requestBody: AliasKeyRequest = {
       data: keys.map((key) => ({
-        encrypted_key: wrapAsBuffer(key.encryptedKey).toString('base64'),
-        alias_wrapper_key_id: wrapAsBuffer(key.wrapperKeyId).toString('utf8'),
+        encrypted_key: encoding.toString(key.encryptedKey, 'base64'),
+        alias_wrapper_key_id: encoding.toString(key.wrapperKeyId, 'utf8'),
       })),
     };
     const response = await this._axiosInstance.post<AliasKeyResponse>(path, requestBody, {
       baseURL: this._kmsRoute,
     });
-    return response.data.data.map(({key}) => Buffer.from(key, 'base64'));
+    return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
   }
 
   private async _decryptAliases(encAliasResponse: EncryptedAliasResponse): Promise<AliasBundle> {
@@ -184,7 +184,7 @@ export class PrivyConfig {
     // For each alias, create privyDecryption instance.
     const aliasDecryption: InstanceType<typeof x0.Decryption>[] =
       encAliasResponse.encrypted_aliases.map(
-        (encAlias) => new x0.Decryption(Buffer.from(encAlias.ciphertext, 'base64')),
+        (encAlias) => new x0.Decryption(encoding.toBuffer(encAlias.ciphertext, 'base64')),
       );
 
     // Get alias keys.
@@ -198,7 +198,7 @@ export class PrivyConfig {
     const aliases = await Promise.all(
       mapPairs(aliasKeys, aliasDecryption, async (aliasKey, privyDecryption) => {
         const decryptedResult = await privyDecryption.decrypt(aliasKey);
-        return Buffer.from(decryptedResult.plaintext()).toString('utf8');
+        return encoding.toString(decryptedResult.plaintext(), 'utf8');
       }),
     );
 
@@ -216,7 +216,7 @@ export class PrivyConfig {
     try {
       // Get wrapper key for alias.
       const wrapperKey = await this._getAliasWrapperKey(x0.WRAPPER_KEY_ALGORITHM);
-      const privyEncryption = new x0.Encryption(Buffer.from(alias, 'utf8'), {
+      const privyEncryption = new x0.Encryption(encoding.toBuffer(alias, 'utf8'), {
         wrapperKey: wrapperKey.publicKey,
         wrapperKeyId: wrapperKey.id,
       });
@@ -224,9 +224,9 @@ export class PrivyConfig {
       // Build alias request.
       const hash = crypto.createHash('sha256').update(alias, 'utf8').digest();
       const request: EncryptedAliasRequestValue = {
-        ciphertext: Buffer.from(encryptedResult.ciphertext()).toString('base64'),
+        ciphertext: encoding.toString(encryptedResult.ciphertext(), 'base64'),
         hash: hash.toString('hex'),
-        alias_wrapper_key_id: Buffer.from(wrapperKey.id).toString('utf8'),
+        alias_wrapper_key_id: encoding.toString(wrapperKey.id, 'utf8'),
       };
       // Send the encrypted alias to Privy.
       const response = await this._axiosInstance.post<EncryptedAliasResponse>(
@@ -257,7 +257,7 @@ export class PrivyConfig {
       // For the purposes of piloting, we can start with this and change later.
       const hashedAlias = crypto.createHash('sha256').update(alias, 'utf8').digest();
       await this._axiosInstance.delete<EncryptedAliasResponse>(
-        deleteAliasPath(userId, Buffer.from(hashedAlias).toString('hex')),
+        deleteAliasPath(userId, encoding.toString(hashedAlias, 'hex')),
         undefined,
       );
       return;

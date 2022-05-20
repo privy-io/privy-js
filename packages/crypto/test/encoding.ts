@@ -7,5 +7,5 @@ export function toString(buf: Uint8Array): string {
 }
 
 export function toHex(buf: Uint8Array) {
-  return Buffer.from(buf).toString('hex');
+  return Buffer.from(buf, buf.byteOffset, buf.byteLength).toString('hex');
 }
