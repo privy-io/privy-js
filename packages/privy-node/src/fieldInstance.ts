@@ -1,6 +1,11 @@
 import encoding, {wrapAsBuffer} from './encoding';
 import {EncryptedUserDataResponseValue} from './types';
 
+export type UserFieldInstances = {
+  user_id: string;
+  data: (FieldInstance | null)[];
+};
+
 export class FieldInstance {
   private attributes: EncryptedUserDataResponseValue;
   private plaintext: Uint8Array;
