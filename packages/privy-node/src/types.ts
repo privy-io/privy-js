@@ -15,6 +15,7 @@ export interface EncryptedUserDataResponse {
 // BatchEncryptedUserDataResponse is densely populated i.e. it contains an entry for every user
 // and field, even if the field has no data.
 export interface BatchEncryptedUserDataResponse {
+  next_cursor_id: string;
   users: EncryptedUserDataResponse[];
 }
 

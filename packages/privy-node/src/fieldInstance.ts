@@ -1,6 +1,11 @@
 import encoding, {wrapAsBuffer} from './encoding';
 import {EncryptedUserDataResponseValue} from './types';
 
+export type BatchFieldInstances = {
+  next_cursor_id: string;
+  users: Array<UserFieldInstances>;
+};
+
 export type UserFieldInstances = {
   user_id: string;
   data: (FieldInstance | null)[];
