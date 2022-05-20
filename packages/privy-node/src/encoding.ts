@@ -29,6 +29,23 @@ export default {
    * @returns {Uint8Array} Uint8Array
    */
   toBuffer(data: string, encoding: EncodingType): Uint8Array {
-    return Buffer.from(data, encoding);
+    // Doesn't work:
+    // return Buffer.from(data, encoding);
+
+    // Doesn't work (see https://stackoverflow.com/questions/8609289/convert-a-binary-nodejs-buffer-to-javascript-arraybuffer/31394257#31394257):
+    // return new Uint8Array(b.buffer, b.byteOffset, b.byteLength / Uint8Array.BYTES_PER_ELEMENT);
+
+    // Works (?):
+    const b = Buffer.from(data, encoding);
+    return toArrayBuffer(b);
   },
 };
+
+function toArrayBuffer(buf: Buffer) {
+  const ab = new ArrayBuffer(buf.length);
+  const view = new Uint8Array(ab);
+  for (let i = 0; i < buf.length; ++i) {
+    view[i] = buf[i];
+  }
+  return view;
+}
