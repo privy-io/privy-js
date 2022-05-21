@@ -10,8 +10,9 @@ describe('PrivyNode', () => {
       process.env.PRIVY_API_PUBLIC_KEY!,
       process.env.PRIVY_API_SECRET_KEY!,
       {
-        apiRoute: process.env.PRIVY_API_URL!,
-        timeoutMs: 0,
+        apiURL: process.env.PRIVY_API_URL!,
+        kmsURL: process.env.PRIVY_API_URL!,
+        timeout: 0,
       },
     );
   });

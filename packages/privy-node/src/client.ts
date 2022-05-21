@@ -1,7 +1,7 @@
 import FormData from 'form-data';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {Http} from './http';
-import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
+import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS, REQUESTER_ID, ROLES} from './constants';
 import {
   dataKeyPath,
   fileDownloadsPath,
@@ -23,6 +23,8 @@ import {FieldInstance} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
 import encoding, {wrapAsBuffer} from './encoding';
 import {md5} from './hash';
+import {PrivyConfig, SigningFn} from './config';
+import crypto from 'crypto';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
@@ -34,45 +36,62 @@ const x0 = CryptoEngine(CryptoVersion.x0);
  * The Privy client performs operations against the Privy API.
  *
  * ```typescript
- * import PrivyClient from '@privy-io/privy-js';
+ * import {PrivyClient} from '@privy-io/privy-node';
  * ```
  */
-export class PrivyClient {
+export class PrivyClient extends PrivyConfig {
   private api: Http;
   private kms: Http;
 
   /**
    * Creates a new Privy client.
+   * @param apiKey Privy API key.
+   * @param apiSecret Privy API secret.
    * @param options Initialization options.
    */
-  constructor(options: {
-    /**
-     * Custom authenticate function. Must return a valid JWT on success.
-     */
-    authenticate: () => Promise<string>;
-    /**
-     * The URL of the Privy API. Defaults to `https://api.privy.io/v0`.
-     */
-    apiURL?: string;
-    /**
-     * The URL of the Privy KMS. Defaults to `https://kms.privy.io/v0`.
-     */
-    kmsURL?: string;
-    /**
-     * Time in milliseconds after which to timeout requests to the API and KMS. Defaults to `10000` (10 seconds).
-     */
-    timeout?: number;
-  }) {
+  constructor(
+    apiKey: string,
+    apiSecret: string,
+    options: {
+      /**
+       * The URL of the Privy API. Defaults to `https://api.privy.io/v0`.
+       */
+      apiURL?: string;
+      /**
+       * The URL of the Privy KMS. Defaults to `https://kms.privy.io/v0`.
+       */
+      kmsURL?: string;
+      /**
+       * Time in milliseconds after which to timeout requests to the API and KMS. Defaults to `10000` (10 seconds).
+       */
+      timeout?: number;
+      /**
+       * Overrides auth token signing and disables automatic signing key generation.
+       * Custom auth public keys can be registered with Privy via the console.
+       */
+      customSigningFn?: SigningFn;
+    } = {},
+  ) {
     const apiURL = options.apiURL || PRIVY_API_URL;
     const kmsURL = options.kmsURL || PRIVY_KMS_URL;
     const timeout = options.timeout || DEFAULT_TIMEOUT_MS;
 
-    this.api = new Http(options.authenticate, {
+    // Initialize base class.
+    super(apiKey, apiSecret, {
+      apiURL,
+      kmsURL,
+      timeout,
+      customSigningFn: options.customSigningFn,
+    });
+
+    const authenticate = () => super.createAccessToken(REQUESTER_ID, ROLES);
+
+    this.api = new Http(authenticate, {
       baseURL: apiURL,
       timeout: timeout,
     });
 
-    this.kms = new Http(options.authenticate, {
+    this.kms = new Http(authenticate, {
       baseURL: kmsURL,
       timeout: timeout,
     });

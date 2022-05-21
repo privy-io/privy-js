@@ -49,29 +49,13 @@ beforeAll(async () => {
 describe('Privy client', () => {
   const userID = `0x${Date.now()}`;
 
-  // In production code, this would likely be setup to hit
-  // a backend that would then call Privy so that the API
-  // secret key is not exposed on clients. However, any
-  // async function that returns a string JWT that Privy
-  // can recognize the signature of is valid.
-  async function authenticate() {
-    const response = await axios.post<{token: string}>(
-      `${PRIVY_API}/auth/token`,
-      {requester_id: userID, roles: []},
-      {
-        auth: {
-          username: PRIVY_API_PUBLIC_KEY as string,
-          password: PRIVY_API_SECRET_KEY as string,
-        },
-      },
-    );
-    return response.data.token;
-  }
+  let client: PrivyClient;
 
-  const client = new PrivyClient({
-    authenticate,
-    apiURL: PRIVY_API,
-    kmsURL: PRIVY_KMS,
+  beforeAll(() => {
+    client = new PrivyClient(PRIVY_API_PUBLIC_KEY!, PRIVY_API_SECRET_KEY!, {
+      apiURL: PRIVY_API,
+      kmsURL: PRIVY_KMS,
+    });
   });
 
   it('get / put api', async () => {
