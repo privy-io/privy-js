@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
-import {formatPrivyError, PrivyClientError} from './errors';
-import {AccessGroup, AccessTokenClaims, Field, Role, UserPermission} from './model/data';
+import {createAccessToken, jwtKeyFromApiSecret} from './accessToken';
+import {formatPrivyError} from './errors';
+import {AccessGroup, Field, Role, UserPermission} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
@@ -68,10 +68,10 @@ export interface PrivyConfigOptions {
    */
   kmsRoute?: string;
   /**
-   * Enable custom auth keys and disable automatic signing key generation.
+   * Overrides the auth signing key and disables automatic signing key generation.
    * Custom auth public keys can be registered with Privy via the console.
    */
-  customAuthKey?: boolean;
+  customSigningKey?: crypto.KeyObject;
   /**
    * Overrides the default Axios timeout of 10 seconds.
    */
@@ -85,14 +85,7 @@ export class PrivyConfig {
    */
   private _apiKey: string;
   /**
-   * If true, do not enable access token issuance from auto-generated JWT signing keys.
-   * This is a precaution, as any access tokens signed with auto-generated keys will not
-   * work if an custom key override is entered via the console.
-   * @internal
-   */
-  private _customAuthKey: boolean;
-  /**
-   * JWT signing key generated from the API secret.
+   * JWT signing key.
    * @internal
    */
   private _signingKey: crypto.KeyObject;
@@ -116,8 +109,8 @@ export class PrivyConfig {
     // Store the Privy KMS route.
     this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
 
-    this._customAuthKey = config.customAuthKey || false;
-    this._signingKey = jwtKeyFromApiSecret(apiSecret);
+    // Use custom signing key if provided, otherwise generate it from the API secret.
+    this._signingKey = config.customSigningKey ?? jwtKeyFromApiSecret(apiSecret);
 
     // Initialize the Axios HTTP client.
     this._axiosInstance = new Http(undefined, {
@@ -291,24 +284,7 @@ export class PrivyConfig {
    * @param roles Roles the data requester should have with the access token.
    */
   async createAccessToken(requesterId: string, roles: string[]): Promise<string> {
-    if (this._customAuthKey) {
-      throw new PrivyClientError(
-        '`createAccessToken` is disabled because this client is configured with custom ' +
-          'signing keys. Please use `createAccessTokenClaims` instead and sign the claims ' +
-          'with the custom signing key.',
-      );
-    }
     return createAccessToken(this._signingKey, this._apiKey, requesterId, roles);
-  }
-
-  /**
-   * Generate Privy access token claims for the given data requester.
-   * These claims can be signed as a JWT to obtain a Privy data access token.
-   * @param requesterId Data requester user ID.
-   * @param roles Roles the data requester should have with the access token.
-   */
-  createAccessTokenClaims(requesterId: string, roles: string[]): AccessTokenClaims {
-    return createAccessTokenClaims(this._apiKey, requesterId, roles);
   }
 
   /**
