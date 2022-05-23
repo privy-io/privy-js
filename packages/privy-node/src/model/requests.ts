@@ -15,9 +15,14 @@ export interface UpdateFieldRequest {
   default_access_group?: string;
 }
 
-export interface CreateOrUpdateRoleRequest {
+export interface CreateRoleRequest {
   name: string;
-  description: string;
+  description?: string;
+}
+
+export interface UpdateRoleRequest {
+  name?: string;
+  description?: string;
 }
 
 export interface CreateAccessGroupRequest {

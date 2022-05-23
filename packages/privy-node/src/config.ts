@@ -6,7 +6,8 @@ import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
   CreateFieldRequest,
-  CreateOrUpdateRoleRequest,
+  UpdateRoleRequest,
+  CreateRoleRequest,
   CreateAccessGroupRequest,
   UpdateFieldRequest,
   UpdateAccessGroupRequest,
@@ -384,16 +385,13 @@ export class PrivyConfig {
 
   /**
    * Create a role.
-   * @param name Unique name for the role.
-   * @param description Arbitrary string attached to the role.
+   * @param attributes
+   * @param attributes.name Unique name for the role.
+   * @param attributes.description Arbitrary string attached to the role.
    */
-  async createRole(name: string, description: string): Promise<Role> {
-    const request: CreateOrUpdateRoleRequest = {
-      name,
-      description,
-    };
+  async createRole(attributes: CreateRoleRequest): Promise<Role> {
     try {
-      const response = await this._axiosInstance.post<Role>(rolesPath(), request);
+      const response = await this._axiosInstance.post<Role>(rolesPath(), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -417,16 +415,13 @@ export class PrivyConfig {
    * Update a role.
    * Default roles cannot be updated.
    * @param roleId Unique alphanumeric identifier for the role.
-   * @param name Unique name for the role.
-   * @param description Arbitrary string attached to the role.
+   * @param attributes
+   * @param attributes.name Unique name for the role.
+   * @param attributes.description Arbitrary string attached to the role.
    */
-  async updateRole(roleId: string, name: string, description: string): Promise<Role> {
-    const request: CreateOrUpdateRoleRequest = {
-      name,
-      description,
-    };
+  async updateRole(roleId: string, attributes: UpdateRoleRequest): Promise<Role> {
     try {
-      const response = await this._axiosInstance.post<Role>(rolePath(roleId), request);
+      const response = await this._axiosInstance.post<Role>(rolePath(roleId), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);

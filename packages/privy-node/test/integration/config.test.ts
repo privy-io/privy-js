@@ -113,7 +113,7 @@ describe('PrivyNode', () => {
       await expect(privyNode.getRole(roleId)).rejects.toThrow();
 
       // CREATE the role
-      role = await privyNode.createRole(name, 'A role');
+      role = await privyNode.createRole({name: name, description: 'A role'});
       expect(role).toMatchObject({
         role_id: roleId,
         name: name,
@@ -131,7 +131,7 @@ describe('PrivyNode', () => {
       });
 
       // UPDATE the field
-      role = await privyNode.updateRole(roleId, name, 'An updated description');
+      role = await privyNode.updateRole(roleId, {description: 'An updated description'});
       expect(role).toMatchObject({
         role_id: roleId,
         name: name,
