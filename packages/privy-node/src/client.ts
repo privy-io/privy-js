@@ -28,7 +28,7 @@ import {
   DataKeyBatchResponse,
   DataKeyResponseValue,
 } from './types';
-import {FieldInstance, UserFieldInstances} from './fieldInstance';
+import {FieldInstance, BatchFieldInstances, UserFieldInstances} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
 import encoding, {wrapAsBuffer} from './encoding';
 import {md5} from './hash';
@@ -139,13 +139,13 @@ export class PrivyClient {
   async getBatch(
     fields: string | string[],
     options: BatchOptions = {},
-  ): Promise<Array<UserFieldInstances>> {
+  ): Promise<BatchFieldInstances> {
     const path = batchUserDataPath(wrap(fields), options);
 
     try {
       const response = await this.api.get<BatchEncryptedUserDataResponse>(path);
       const decrypted = await this.decryptBatch(wrap(fields), response.data);
-      return decrypted;
+      return {next_cursor_id: response.data.next_cursor_id, users: decrypted};
     } catch (error) {
       throw formatPrivyError(error);
     }
