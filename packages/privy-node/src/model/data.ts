@@ -20,13 +20,17 @@ export interface Field {
    */
   field_id: string;
   /**
-   * Unique name for the field.
+   * The name of the field.
    */
   name: string;
   /**
-   * Arbitrary string description attached to the field.
+   * The description of the field's purpose.
    */
   description: string;
+  /**
+   * The default access group id assigned to the field.
+   */
+  default_access_group: string;
   /**
    * Last updated timestamp.
    */

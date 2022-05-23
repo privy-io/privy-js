@@ -1,4 +1,5 @@
-import {PrivyConfig as PrivyNode} from '../../src/config';
+import {PrivyConfig as PrivyNode} from '../../src';
+import uniqueId from '../unique_id';
 
 describe('PrivyNode', () => {
   let privyNode: PrivyNode;
@@ -13,6 +14,80 @@ describe('PrivyNode', () => {
         timeoutMs: 0,
       },
     );
+  });
+
+  describe('fields', () => {
+    it('can list all fields', async () => {
+      const fields = await privyNode.listFields();
+      expect(fields).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({field_id: 'email'}),
+          expect.objectContaining({field_id: 'name'}),
+          expect.objectContaining({field_id: 'username'}),
+          expect.objectContaining({field_id: 'bio'}),
+          expect.objectContaining({field_id: 'website'}),
+          expect.objectContaining({field_id: 'avatar'}),
+        ]),
+      );
+    });
+
+    it('can create, read, update, and delete a field', async () => {
+      const id = uniqueId();
+      const name = `Field ${id}`;
+      const fieldId = `field-${id}`;
+
+      let field;
+
+      // GET should 404 before the field is created
+      await expect(privyNode.getField(fieldId)).rejects.toThrow();
+
+      // CREATE the field
+      field = await privyNode.createField({name: name, description: 'A field'});
+      expect(field).toMatchObject({
+        field_id: fieldId,
+        name: name,
+        description: 'A field',
+        default_access_group: 'self',
+        updated_at: expect.any(Number),
+      });
+
+      // GET should respond with the field
+      field = await privyNode.getField(fieldId);
+      expect(field).toMatchObject({
+        field_id: fieldId,
+        name: name,
+        description: 'A field',
+        default_access_group: 'self',
+        updated_at: expect.any(Number),
+      });
+
+      // UPDATE the field
+      field = await privyNode.updateField(fieldId, {default_access_group: 'admin'});
+      expect(field).toMatchObject({
+        field_id: fieldId,
+        name: name,
+        description: 'A field',
+        default_access_group: 'admin',
+        updated_at: expect.any(Number),
+      });
+
+      // GET should respond with the updated field
+      field = await privyNode.getField(fieldId);
+      expect(field).toMatchObject({
+        field_id: fieldId,
+        name: name,
+        description: 'A field',
+        default_access_group: 'admin',
+        updated_at: expect.any(Number),
+      });
+
+      // DELETE the field
+      const result = await privyNode.deleteField(fieldId);
+      expect(result).toBe(undefined);
+
+      // GET should 404 when the field has been deleted
+      await expect(privyNode.getField(fieldId)).rejects.toThrow();
+    });
   });
 
   describe('roles', () => {

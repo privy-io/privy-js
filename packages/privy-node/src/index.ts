@@ -1,4 +1,5 @@
-import {PrivyClient} from './client';
+export {PrivyClient} from './client';
+export {PrivyConfig} from './config';
 
 export {Session} from './sessions';
 export {CustomSession} from './sessions/custom';
