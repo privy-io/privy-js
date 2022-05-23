@@ -7,13 +7,14 @@ export interface AccessTokenRequest {
 
 export interface CreateFieldRequest {
   name: string;
-  description: string;
-  permissions: FieldPermission[];
+  description?: string;
+  default_access_group?: string;
 }
 
 export interface UpdateFieldRequest {
-  name: string;
-  description: string;
+  name?: string;
+  description?: string;
+  default_access_group?: string;
 }
 
 export interface CreateOrUpdateRoleRequest {

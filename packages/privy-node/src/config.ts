@@ -325,22 +325,14 @@ export class PrivyConfig {
 
   /**
    * Create a field.
-   * @param name Unique name for the field.
-   * @param description Arbitrary string attached to the field.
-   * @param permissions The set of permissions on the field.
+   * @param attributes
+   * @param attributes.name The field name of which the field id is derived.
+   * @param attributes.description Description of the field's purpose.
+   * @param attributes.default_access_group The default access group for this field.
    */
-  async createField(
-    name: string,
-    description: string,
-    permissions: FieldPermission[],
-  ): Promise<Field> {
-    const request: CreateFieldRequest = {
-      name,
-      description,
-      permissions,
-    };
+  async createField(attributes: CreateFieldRequest): Promise<Field> {
     try {
-      const response = await this._axiosInstance.post<Field>(fieldsPath(), request);
+      const response = await this._axiosInstance.post<Field>(fieldsPath(), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -362,17 +354,14 @@ export class PrivyConfig {
 
   /**
    * Update a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param name Unique name for the field.
-   * @param description Arbitrary string attached to the field.
+   * @param attributes
+   * @param attributes.name The field name of which the field id is derived.
+   * @param attributes.description Description of the field's purpose.
+   * @param attributes.default_access_group The default access group for this field.
    */
-  async updateField(fieldId: string, name: string, description: string): Promise<Field> {
-    const request: UpdateFieldRequest = {
-      name,
-      description,
-    };
+  async updateField(fieldId: string, attributes: UpdateFieldRequest): Promise<Field> {
     try {
-      const response = await this._axiosInstance.post<Field>(fieldPath(fieldId), request);
+      const response = await this._axiosInstance.post<Field>(fieldPath(fieldId), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
