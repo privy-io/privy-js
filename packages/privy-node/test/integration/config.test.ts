@@ -156,4 +156,86 @@ describe('PrivyNode', () => {
       await expect(privyNode.getRole(roleId)).rejects.toThrow();
     });
   });
+
+  describe('access groups', () => {
+    it('can list all access groups', async () => {
+      const accessGroup = await privyNode.listAccessGroups();
+      expect(accessGroup).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({access_group_id: 'self'}),
+          expect.objectContaining({access_group_id: 'admin'}),
+          expect.objectContaining({access_group_id: 'public'}),
+        ]),
+      );
+    });
+
+    it('can create, read, update, and delete access groups', async () => {
+      const id = uniqueId();
+      const name = `Access group ${id}`;
+      const accessGroupId = `access-group-${id}`;
+
+      let accessGroup;
+
+      // GET should 404 before the access group is created
+      await expect(privyNode.getAccessGroup(accessGroupId)).rejects.toThrow();
+
+      // CREATE the access group
+      accessGroup = await privyNode.createAccessGroup({
+        name: name,
+        description: 'Compliance group',
+        read_roles: ['self'],
+        write_roles: ['self'],
+      });
+      expect(accessGroup).toMatchObject({
+        access_group_id: accessGroupId,
+        name: name,
+        description: 'Compliance group',
+        read_roles: ['self'],
+        write_roles: ['self'],
+        is_default: false,
+      });
+
+      // GET should respond with the access group
+      accessGroup = await privyNode.getAccessGroup(accessGroupId);
+      expect(accessGroup).toMatchObject({
+        access_group_id: accessGroupId,
+        name: name,
+        description: 'Compliance group',
+        read_roles: ['self'],
+        write_roles: ['self'],
+        is_default: false,
+      });
+
+      // UPDATE the field
+      accessGroup = await privyNode.updateAccessGroup(accessGroupId, {
+        description: 'An updated description',
+      });
+      expect(accessGroup).toMatchObject({
+        access_group_id: accessGroupId,
+        name: name,
+        description: 'An updated description',
+        read_roles: ['self'],
+        write_roles: ['self'],
+        is_default: false,
+      });
+
+      // GET should respond with the updated access group
+      accessGroup = await privyNode.getAccessGroup(accessGroupId);
+      expect(accessGroup).toMatchObject({
+        access_group_id: accessGroupId,
+        name: name,
+        description: 'An updated description',
+        read_roles: ['self'],
+        write_roles: ['self'],
+        is_default: false,
+      });
+
+      // DELETE the access group
+      const result = await privyNode.deleteAccessGroup(accessGroupId);
+      expect(result).toBe(undefined);
+
+      // GET should 404 after the access group is deleted.
+      await expect(privyNode.getAccessGroup(accessGroupId)).rejects.toThrow();
+    });
+  });
 });

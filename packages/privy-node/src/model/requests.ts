@@ -20,6 +20,20 @@ export interface CreateOrUpdateRoleRequest {
   description: string;
 }
 
+export interface CreateAccessGroupRequest {
+  name: string;
+  description?: string;
+  read_roles?: string[];
+  write_roles?: string[];
+}
+
+export interface UpdateAccessGroupRequest {
+  name?: string;
+  description?: string;
+  read_roles?: string[];
+  write_roles?: string[];
+}
+
 export interface AliasKeyRequestValue {
   // Encrypted key, base64 encoded.
   encrypted_key: string;

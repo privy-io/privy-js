@@ -59,3 +59,31 @@ export interface Role {
    */
   is_default: boolean;
 }
+
+export interface AccessGroup {
+  /**
+   * Unique alphanumeric identifier for the access group.
+   */
+  access_group_id: string;
+  /**
+   * Unique name for the access group.
+   */
+  name: string;
+  /**
+   * Arbitrary string description attached to the access group.
+   */
+  description: string;
+  /**
+   * List of role ids that have READ permission in this group.
+   */
+  read_roles: string[];
+  /**
+   * List of role ids that have WRITE permission in this group.
+   */
+  write_roles: string[];
+  /**
+   * Indicates whether the access group is a default Privy access group.
+   * Default access groups cannot be updated or deleted.
+   */
+  is_default: boolean;
+}

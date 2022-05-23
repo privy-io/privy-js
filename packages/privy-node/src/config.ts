@@ -1,13 +1,15 @@
 import crypto from 'crypto';
 import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
 import {formatPrivyError, PrivyClientError} from './errors';
-import {AccessTokenClaims, Field, Role} from './model/data';
+import {AccessGroup, AccessTokenClaims, Field, Role} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
   CreateFieldRequest,
   CreateOrUpdateRoleRequest,
+  CreateAccessGroupRequest,
   UpdateFieldRequest,
+  UpdateAccessGroupRequest,
   EncryptedAliasRequestValue,
 } from './model/requests';
 import {wrapAsBuffer} from './encoding';
@@ -34,6 +36,8 @@ const fieldsPath = () => '/fields';
 const fieldPath = (fieldId: string) => `/fields/${fieldId}`;
 const rolesPath = () => '/roles';
 const rolePath = (roleId: string) => `/roles/${roleId}`;
+const accessGroupsPath = () => '/access_groups';
+const accessGroupPath = (accessGroupId: string) => `/access_groups/${accessGroupId}`;
 
 // Data type to represent all id's that are aliased together.
 type AliasBundle = {
@@ -437,6 +441,88 @@ export class PrivyConfig {
   async deleteRole(roleId: string): Promise<void> {
     try {
       await this._axiosInstance.delete(rolePath(roleId));
+      return;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * List all access groups.
+   * Retrieves all the defined access groups for this account.
+   */
+  async listAccessGroups(): Promise<AccessGroup[]> {
+    try {
+      const response = await this._axiosInstance.get<AccessGroup[]>(accessGroupsPath());
+      return response.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Create an access group.
+   * @param attributes
+   * @param attributes.name The access group name of which the access group id is derived.
+   * @param attributes.description Description of the access group's purpose.
+   * @param attributes.read_roles List of role ids that have READ permission in this group.
+   * @param attributes.write_roles List of role ids that have WRITE permission in this group.
+   */
+  async createAccessGroup(attributes: CreateAccessGroupRequest): Promise<AccessGroup> {
+    try {
+      const response = await this._axiosInstance.post<AccessGroup>(accessGroupsPath(), attributes);
+      return response.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Retrieve an access group.
+   * @param accessGroupId The id of the access group.
+   */
+  async getAccessGroup(accessGroupId: string): Promise<AccessGroup> {
+    try {
+      const response = await this._axiosInstance.get<AccessGroup>(accessGroupPath(accessGroupId));
+      return response.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Update an access group.
+   * Default access groups cannot be updated.
+   * @param accessGroupId The id of the access group.
+   * @param attributes
+   * @param attributes.name The access group name of which the access group id is derived.
+   * @param attributes.description Description of the access group's purpose.
+   * @param attributes.read_roles List of role ids that have READ permission in this group.
+   * @param attributes.write_roles List of role ids that have WRITE permission in this group.
+   */
+  async updateAccessGroup(
+    accessGroupId: string,
+    attributes: UpdateAccessGroupRequest,
+  ): Promise<AccessGroup> {
+    try {
+      const response = await this._axiosInstance.post<AccessGroup>(
+        accessGroupPath(accessGroupId),
+        attributes,
+      );
+      return response.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Delete an access group
+   * Default access groups cannot be deleted.
+   * @param accessGroupId The id of the access group.
+   */
+  async deleteAccessGroup(accessGroupId: string): Promise<void> {
+    try {
+      await this._axiosInstance.delete(accessGroupPath(accessGroupId));
       return;
     } catch (error) {
       throw formatPrivyError(error);
