@@ -78,11 +78,6 @@ export class PrivyConfig {
    */
   private _apiKey: string;
   /**
-   * Privy API secret.
-   * @internal
-   */
-  private _apiSecret: string;
-  /**
    * If true, do not enable access token issuance from auto-generated JWT signing keys.
    * This is a precaution, as any access tokens signed with auto-generated keys will not
    * work if an custom key override is entered via the console.
@@ -109,9 +104,7 @@ export class PrivyConfig {
    * Construct the Privy instance using a Privy API key pair and configuration options.
    */
   constructor(apiKey: string, apiSecret: string, config: PrivyConfigOptions = {}) {
-    // Store the Privy API key pair.
     this._apiKey = apiKey;
-    this._apiSecret = apiSecret;
 
     // Store the Privy KMS route.
     this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
