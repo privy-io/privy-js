@@ -1,5 +1,3 @@
-import {FieldPermission} from './data';
-
 export interface AccessTokenRequest {
   requester_id: string;
   roles: string[];
@@ -20,15 +18,6 @@ export interface UpdateFieldRequest {
 export interface CreateOrUpdateRoleRequest {
   name: string;
   description: string;
-}
-
-export interface CreateOrUpdateGroupRequest {
-  name: string;
-  description: string;
-}
-
-export interface AddUserToGroupRequest {
-  user_id: string;
 }
 
 export interface AliasKeyRequestValue {

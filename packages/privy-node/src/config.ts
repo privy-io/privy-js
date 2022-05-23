@@ -1,13 +1,11 @@
 import crypto from 'crypto';
 import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
 import {formatPrivyError, PrivyClientError} from './errors';
-import {AccessTokenClaims, Field, FieldPermission, Group, Role} from './model/data';
+import {AccessTokenClaims, Field, Role} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
-  AddUserToGroupRequest,
   CreateFieldRequest,
-  CreateOrUpdateGroupRequest,
   CreateOrUpdateRoleRequest,
   UpdateFieldRequest,
   EncryptedAliasRequestValue,
@@ -34,15 +32,8 @@ const aliasWrapperKeyPath = () => `/key_manager/alias_wrapper_keys`;
 const aliasKeyPath = () => `/key_manager/alias_keys`;
 const fieldsPath = () => '/fields';
 const fieldPath = (fieldId: string) => `/fields/${fieldId}`;
-const fieldPermissionsPath = (fieldId: string) => `/permissions/fields/${fieldId}`;
-const fieldPermissionsForGroupPath = (fieldId: string, groupId: string) =>
-  `/permissions/fields/${fieldId}/groups/${groupId}`;
 const rolesPath = () => '/roles';
 const rolePath = (roleId: string) => `/roles/${roleId}`;
-const groupsPath = () => '/groups';
-const groupPath = (groupId: string) => `/groups/${groupId}`;
-const groupUsersPath = (groupId: string) => `/groups/${groupId}/users`;
-const groupUserPath = (groupId: string, userId: string) => `/groups/${groupId}/users/${userId}`;
 
 // Data type to represent all id's that are aliased together.
 type AliasBundle = {
@@ -375,108 +366,6 @@ export class PrivyConfig {
   }
 
   /**
-   * Get permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   */
-  async getFieldPermissions(fieldId: string): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.get<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Update permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param permissions New permissions for the field.
-   */
-  async updateFieldPermissions(
-    fieldId: string,
-    permissions: FieldPermission[],
-  ): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.post<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-        permissions,
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   */
-  async deleteFieldPermissions(fieldId: string): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.delete<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Get permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async getFieldPermissionForGroup(fieldId: string, groupId: string): Promise<FieldPermission> {
-    try {
-      const response = await this._axiosInstance.get<FieldPermission>(
-        fieldPermissionsForGroupPath(fieldId, groupId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Set permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param permission New permission for the field and group.
-   */
-  async setFieldPermissionForGroup(
-    fieldId: string,
-    groupId: string,
-    permission: Omit<FieldPermission, 'group_id'>,
-  ): Promise<FieldPermission> {
-    try {
-      const response = await this._axiosInstance.post<FieldPermission>(
-        fieldPermissionsForGroupPath(fieldId, groupId),
-        permission,
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async deleteFieldPermissionForGroup(fieldId: string, groupId: string): Promise<void> {
-    try {
-      await this._axiosInstance.delete(fieldPermissionsForGroupPath(fieldId, groupId));
-      return;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
    * List all roles.
    * Retrieves all the defined roles for this account.
    */
@@ -548,128 +437,6 @@ export class PrivyConfig {
   async deleteRole(roleId: string): Promise<void> {
     try {
       await this._axiosInstance.delete(rolePath(roleId));
-      return;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * List all groups.
-   * Retrieves all the defined groups for this account.
-   */
-  async listGroups(): Promise<Group[]> {
-    try {
-      const response = await this._axiosInstance.get<Group[]>(groupsPath());
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Create a group.
-   * @param name Unique name for the group.
-   * @param description Arbitrary string attached to the group.
-   */
-  async createGroup(name: string, description: string): Promise<Group> {
-    const request: CreateOrUpdateGroupRequest = {
-      name,
-      description,
-    };
-    try {
-      const response = await this._axiosInstance.post<Group>(groupsPath(), request);
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Retrieve a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async getGroup(groupId: string): Promise<Group> {
-    try {
-      const response = await this._axiosInstance.get<Group>(groupPath(groupId));
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Update a group.
-   * Default groups cannot be updated.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param name Unique name for the group.
-   * @param description Arbitrary string attached to the group.
-   */
-  async updateGroup(groupId: string, name: string, description: string): Promise<Group> {
-    const request: CreateOrUpdateGroupRequest = {
-      name,
-      description,
-    };
-    try {
-      const response = await this._axiosInstance.post<Group>(groupPath(groupId), request);
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete a group.
-   * Default groups cannot be deleted.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async deleteGroup(groupId: string): Promise<void> {
-    try {
-      await this._axiosInstance.delete(groupPath(groupId));
-      return;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Get the users in a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async listUsersInGroup(groupId: string): Promise<string[]> {
-    try {
-      const response = await this._axiosInstance.get<GroupUsersResponse>(groupUsersPath(groupId));
-      return response.data.user_ids;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Add a user to a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param userId Unique alphanumeric identifier for the user.
-   */
-  async addUserToGroup(groupId: string, userId: string): Promise<void> {
-    try {
-      const request: AddUserToGroupRequest = {
-        user_id: userId,
-      };
-      await this._axiosInstance.post<GroupUsersResponse>(groupUsersPath(groupId), request);
-      return;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete a user from a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param userId Unique alphanumeric identifier for the user.
-   */
-  async removeUserFromGroup(groupId: string, userId: string): Promise<void> {
-    try {
-      await this._axiosInstance.delete(groupUserPath(groupId, userId));
       return;
     } catch (error) {
       throw formatPrivyError(error);
