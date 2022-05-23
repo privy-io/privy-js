@@ -91,70 +91,69 @@ describe('PrivyNode', () => {
   });
 
   describe('roles', () => {
-    let roleId: string;
+    it('can list all roles', async () => {
+      const roles = await privyNode.listRoles();
+      expect(roles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({role_id: 'self'}),
+          expect.objectContaining({role_id: 'admin'}),
+          expect.objectContaining({role_id: 'public'}),
+        ]),
+      );
+    });
 
-    beforeEach(async () => {
-      const role = await privyNode.createRole(`test_role`, 'test role');
+    it('can create, read, update, and delete roles', async () => {
+      const id = uniqueId();
+      const name = `Role ${id}`;
+      const roleId = `role-${id}`;
+
+      let role;
+
+      // GET should 404 before the role is created
+      await expect(privyNode.getRole(roleId)).rejects.toThrow();
+
+      // CREATE the role
+      role = await privyNode.createRole(name, 'A role');
       expect(role).toMatchObject({
-        description: 'test role',
+        role_id: roleId,
+        name: name,
+        description: 'A role',
         is_default: false,
-        name: 'test_role',
-        role_id: 'test-role',
       });
-      roleId = role.role_id;
-    });
 
-    afterEach(async () => {
-      await expect(privyNode.deleteRole(roleId)).resolves.toBeUndefined();
-    });
-
-    it('list', async () => {
-      await expect(privyNode.listRoles()).resolves.toMatchObject([
-        {
-          description: 'Role that grants users access to their own data.',
-          is_default: true,
-          name: 'self',
-          role_id: 'self',
-        },
-        {
-          description: 'Default role for your admins.',
-          is_default: true,
-          name: 'admin',
-          role_id: 'admin',
-        },
-        {
-          description: 'Role granting public access to data.',
-          is_default: true,
-          name: 'public',
-          role_id: 'public',
-        },
-        {
-          description: 'test role',
-          is_default: false,
-          name: 'test_role',
-          role_id: 'test-role',
-        },
-      ]);
-    });
-
-    it('update', async () => {
-      await expect(
-        privyNode.updateRole(roleId, `test_role`, 'test role updated'),
-      ).resolves.toMatchObject({
-        description: 'test role updated',
+      // GET should respond with the role
+      role = await privyNode.getRole(roleId);
+      expect(role).toMatchObject({
+        role_id: roleId,
+        name: name,
+        description: 'A role',
         is_default: false,
-        name: 'test_role',
-        role_id: 'test-role',
       });
-    });
 
-    it('get', async () => {
-      await expect(privyNode.getRole(roleId)).resolves.toMatchObject({
-        description: 'test role',
+      // UPDATE the field
+      role = await privyNode.updateRole(roleId, name, 'An updated description');
+      expect(role).toMatchObject({
+        role_id: roleId,
+        name: name,
+        description: 'An updated description',
         is_default: false,
-        name: 'test_role',
-        role_id: 'test-role',
       });
+
+      // GET should respond with the updated role
+      role = await privyNode.getRole(roleId);
+      expect(role).toMatchObject({
+        role_id: roleId,
+        name: name,
+        description: 'An updated description',
+        is_default: false,
+      });
+
+      // DELETE the role
+      const result = await privyNode.deleteRole(roleId);
+      expect(result).toBe(undefined);
+
+      // GET should 404 after the role is deleted.
+      await expect(privyNode.getRole(roleId)).rejects.toThrow();
     });
   });
 });
