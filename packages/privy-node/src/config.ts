@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
 import {formatPrivyError, PrivyClientError} from './errors';
-import {AccessGroup, AccessTokenClaims, Field, Role} from './model/data';
+import {AccessGroup, AccessTokenClaims, Field, Role, UserPermission} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
@@ -16,7 +16,7 @@ import {
 import {wrapAsBuffer} from './encoding';
 import {mapPairs} from './utils';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
-import {AliasKeyResponse, EncryptedAliasResponse, GroupUsersResponse} from './model/responses';
+import {AliasKeyResponse, EncryptedAliasResponse} from './model/responses';
 import {WrapperKeyResponseValue} from './types';
 import {Http} from './http';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
@@ -39,6 +39,13 @@ const rolesPath = () => '/roles';
 const rolePath = (roleId: string) => `/roles/${roleId}`;
 const accessGroupsPath = () => '/access_groups';
 const accessGroupPath = (accessGroupId: string) => `/access_groups/${accessGroupId}`;
+const userPermissionsPath = (userId: string, fieldIds?: string[]) => {
+  if (Array.isArray(fieldIds)) {
+    return `/users/${userId}/permissions?field_ids=${fieldIds.join(',')}`;
+  } else {
+    return `/users/${userId}/permissions`;
+  }
+};
 
 // Data type to represent all id's that are aliased together.
 type AliasBundle = {
@@ -519,6 +526,42 @@ export class PrivyConfig {
     try {
       await this._axiosInstance.delete(accessGroupPath(accessGroupId));
       return;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Get the permissions required for accessing a given user's data.
+   * @param userId The id of the user to fetch permissions for.
+   * @param fieldIds Optional list of field ids to scope the request to.
+   */
+  async getUserPermissions(userId: string, fieldIds?: string[]): Promise<UserPermission[]> {
+    try {
+      const response = await this._axiosInstance.get<{data: UserPermission[]}>(
+        userPermissionsPath(userId, fieldIds),
+      );
+      return response.data.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Update the permissions required for accessing a given user's data.
+   * @param userId The id of the user to fetch permissions for.
+   * @param permissions A list of permissions objects.
+   */
+  async updateUserPermissions(
+    userId: string,
+    permissions: UserPermission[],
+  ): Promise<UserPermission[]> {
+    try {
+      const response = await this._axiosInstance.post<{data: UserPermission[]}>(
+        userPermissionsPath(userId),
+        {data: permissions},
+      );
+      return response.data.data;
     } catch (error) {
       throw formatPrivyError(error);
     }

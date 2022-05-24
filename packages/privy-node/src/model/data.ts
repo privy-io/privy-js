@@ -87,3 +87,14 @@ export interface AccessGroup {
    */
   is_default: boolean;
 }
+
+export interface UserPermission {
+  /**
+   * The id of the field this permission is defined for.
+   */
+  field_id: string;
+  /**
+   * The id of the access group assigned to the field.
+   */
+  access_group: string;
+}

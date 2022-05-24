@@ -238,4 +238,55 @@ describe('PrivyNode', () => {
       await expect(privyNode.getAccessGroup(accessGroupId)).rejects.toThrow();
     });
   });
+
+  describe('user permissions', () => {
+    it('can read and write permissions', async () => {
+      const userId = uniqueId();
+
+      let permissions;
+
+      // GET ALL
+      permissions = await privyNode.getUserPermissions(userId);
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          {field_id: 'name', access_group: 'self'},
+          {field_id: 'username', access_group: 'self'},
+          {field_id: 'email', access_group: 'self'},
+          {field_id: 'bio', access_group: 'self'},
+          {field_id: 'website', access_group: 'self'},
+          {field_id: 'avatar', access_group: 'self'},
+        ]),
+      );
+
+      // GET SUBSET
+      permissions = await privyNode.getUserPermissions(userId, ['email', 'name']);
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          {field_id: 'email', access_group: 'self'},
+          {field_id: 'name', access_group: 'self'},
+        ]),
+      );
+
+      // UPDATE
+      permissions = await privyNode.updateUserPermissions(userId, [
+        {field_id: 'email', access_group: 'admin'},
+        {field_id: 'name', access_group: 'admin'},
+      ]);
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          {field_id: 'email', access_group: 'admin'},
+          {field_id: 'name', access_group: 'admin'},
+        ]),
+      );
+
+      // GET SUBSET
+      permissions = await privyNode.getUserPermissions(userId, ['email', 'name']);
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          {field_id: 'email', access_group: 'admin'},
+          {field_id: 'name', access_group: 'admin'},
+        ]),
+      );
+    });
+  });
 });
