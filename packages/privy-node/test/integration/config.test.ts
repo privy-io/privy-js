@@ -289,4 +289,63 @@ describe('PrivyNode', () => {
       );
     });
   });
+
+  describe('role requesters', () => {
+    it('can read and update the roles assigned to requesters', async () => {
+      const requesterId1 = uniqueId();
+      const requesterId2 = uniqueId();
+
+      const id = uniqueId();
+      const name = `Role ${id}`;
+      const roleId = `role-${id}`;
+
+      let roles;
+      let requesters;
+
+      // CREATE a role
+      const role = await privyNode.createRole({name: name, description: 'A custom role'});
+      expect(role).toMatchObject({
+        role_id: roleId,
+        name: name,
+        description: 'A custom role',
+        is_default: false,
+      });
+
+      roles = await privyNode.getRequesterRoles(requesterId1);
+      expect(roles.length).toEqual(2);
+      expect(roles).toEqual(expect.arrayContaining(['self', 'public']));
+
+      roles = await privyNode.getRequesterRoles(requesterId2);
+      expect(roles.length).toEqual(2);
+      expect(roles).toEqual(expect.arrayContaining(['self', 'public']));
+
+      requesters = await privyNode.getRoleRequesters(roleId);
+      expect(requesters).toEqual([]);
+
+      requesters = await privyNode.addRequestersToRole(roleId, [requesterId1, requesterId2]);
+      expect(requesters).toEqual(expect.arrayContaining([requesterId1, requesterId2]));
+
+      roles = await privyNode.getRequesterRoles(requesterId1);
+      expect(roles.length).toEqual(3);
+      expect(roles).toEqual(expect.arrayContaining(['self', 'public', roleId]));
+
+      roles = await privyNode.getRequesterRoles(requesterId2);
+      expect(roles.length).toEqual(3);
+      expect(roles).toEqual(expect.arrayContaining(['self', 'public', roleId]));
+
+      requesters = await privyNode.getRoleRequesters(roleId);
+      expect(requesters.length).toEqual(2);
+      expect(requesters).toEqual(expect.arrayContaining([requesterId1, requesterId2]));
+
+      await privyNode.removeRequesterFromRole(roleId, requesterId1);
+
+      requesters = await privyNode.getRoleRequesters(roleId);
+      expect(requesters.length).toEqual(1);
+      expect(requesters).toEqual([requesterId2]);
+
+      roles = await privyNode.getRequesterRoles(requesterId1);
+      expect(roles.length).toEqual(2);
+      expect(roles).toEqual(expect.arrayContaining(['self', 'public']));
+    });
+  });
 });

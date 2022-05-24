@@ -46,6 +46,10 @@ const userPermissionsPath = (userId: string, fieldIds?: string[]) => {
     return `/users/${userId}/permissions`;
   }
 };
+const requesterRolesPath = (requesterId: string) => `/requesters/${requesterId}/roles`;
+const roleRequestersPath = (roleId: string) => `/roles/${roleId}/requesters`;
+const roleRequesterPath = (roleId: string, requesterId: string) =>
+  `/roles/${roleId}/requesters/${requesterId}`;
 
 // Data type to represent all id's that are aliased together.
 type AliasBundle = {
@@ -562,6 +566,67 @@ export class PrivyConfig {
         {data: permissions},
       );
       return response.data.data;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Get all the roles assigned to the requester.
+   * @param requesterId The id of the requester.
+   */
+  async getRequesterRoles(requesterId: string): Promise<string[]> {
+    try {
+      const response = await this._axiosInstance.get<{role_ids: string[]}>(
+        requesterRolesPath(requesterId),
+      );
+      return response.data.role_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Get all the requesters assigned to the given role id.
+   * @param roleId The id of the role.
+   */
+  async getRoleRequesters(roleId: string): Promise<string[]> {
+    try {
+      const response = await this._axiosInstance.get<{requester_ids: string[]}>(
+        roleRequestersPath(roleId),
+      );
+      return response.data.requester_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Assign the given role to a list of requesters.
+   * @param roleId The id of the role.
+   * @param requesterIds A list of requester ids to assign the role.
+   */
+  async addRequestersToRole(roleId: string, requesterIds: string[]): Promise<string[]> {
+    try {
+      const response = await this._axiosInstance.post<{added_requester_ids: string[]}>(
+        roleRequestersPath(roleId),
+        {requester_ids: requesterIds},
+      );
+      return response.data.added_requester_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Remove the requester from the given role.
+   * @param roleId The id of the role.
+   * @param requesterId The requester to remove from the role.
+   */
+  async removeRequesterFromRole(roleId: string, requesterId: string): Promise<void> {
+    try {
+      await this._axiosInstance.delete(roleRequesterPath(roleId, requesterId));
+      return;
     } catch (error) {
       throw formatPrivyError(error);
     }
