@@ -27,7 +27,7 @@ export class Http {
     }
 
     try {
-      return axios.get(path, this.buildConfig(config));
+      return await axios.get(path, this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
@@ -45,7 +45,7 @@ export class Http {
     }
 
     try {
-      return axios.post(path, data, this.buildConfig(config));
+      return await axios.post(path, data, this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
