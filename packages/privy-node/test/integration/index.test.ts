@@ -1,5 +1,5 @@
 import axios from 'axios';
-import PrivyClient, {FieldInstance, BatchOptions, CustomSession} from '../../src';
+import PrivyClient, {FieldInstance, CustomSession} from '../../src';
 
 const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
@@ -125,73 +125,5 @@ describe('Privy client', () => {
     const downloadedFile = await client.getFile(userID, 'avatar');
     expect(downloadedFile!.buffer().toString()).toEqual('file_data');
     expect(downloadedFile!.contentType).toEqual('text/plain');
-  });
-});
-
-describe('Privy admin client', () => {
-  // In production code, this would likely be setup to hit
-  // a backend that would then call Privy so that the API
-  // secret key is not exposed on clients. However, any
-  // async function that returns a string JWT that Privy
-  // can recognize the signature of is valid.
-  const customSession = new CustomSession(async function authenticate() {
-    const response = await axios.post<{token: string}>(
-      `${PRIVY_API}/auth/token`,
-      {requester_id: 'admin_id', roles: ['admin']},
-      {
-        auth: {
-          username: PRIVY_API_PUBLIC_KEY,
-          password: PRIVY_API_SECRET_KEY,
-        },
-      },
-    );
-    return response.data.token;
-  });
-
-  const client = new PrivyClient({
-    apiURL: PRIVY_API,
-    kmsURL: PRIVY_KMS,
-    session: customSession,
-  });
-
-  it('batch get / put api', async () => {
-    const user0 = `0x${Date.now()}`;
-    let username: FieldInstance | null, email: FieldInstance | null;
-    [username, email] = await client.put(user0, [
-      {field: 'username', value: 'tobias'},
-      {field: 'email', value: 'tobias@funke.com'},
-    ]);
-    const user1 = `0x${Date.now()}`;
-    [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
-    const user2 = `0x${Date.now()}`;
-    [username] = await client.put(user2, [{field: 'username', value: 'gob'}]);
-
-    // Test missing cursor behavior.
-    let options: BatchOptions = {limit: 1};
-    let batchData = await client.getBatch(['username', 'email'], {
-      limit: 1,
-    });
-    expect(batchData.next_cursor_id).toEqual(user1);
-    expect(batchData.users.length).toEqual(1);
-
-    // Test data returned when cursor is provided.
-    batchData = await client.getBatch(['username', 'email'], {
-      cursor: user1,
-      limit: 2,
-    });
-    let users = batchData.users;
-    expect(users.length).toEqual(2);
-    // Check user0's data.
-    expect(users[0].data.length).toEqual(2);
-    username = users[0].data[0] as FieldInstance;
-    expect(username.text()).toEqual('michael');
-    email = users[0].data[1] as FieldInstance;
-    expect(email).toEqual(null);
-    // Check user1's data.
-    expect(users[1].data.length).toEqual(2);
-    username = users[1].data[0] as FieldInstance;
-    expect(username.text()).toEqual('tobias');
-    email = users[1].data[1] as FieldInstance;
-    expect(email.text()).toEqual('tobias@funke.com');
   });
 });
