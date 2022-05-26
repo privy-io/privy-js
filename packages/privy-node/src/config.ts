@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import {createAccessTokenClaims, jwtKeyFromApiSecret, signAccessToken} from './accessToken';
 import {formatPrivyError} from './errors';
-import {AccessGroup, Field, Role, UserPermission} from './model/data';
+import {AccessGroup, AccessTokenClaims, Field, Role, UserPermission} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
