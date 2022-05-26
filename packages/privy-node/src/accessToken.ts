@@ -8,17 +8,13 @@ const secondsSinceEpoch = (): number => {
 };
 
 /**
- * getAccessToken returns a signed access token associating a data requester with a set of roles.
+ * Signs access token claims with the provided signing key, returning a JWT string.
  */
-export const createAccessToken = (
+export const signAccessToken = (
   signingKey: crypto.KeyObject,
-  apiKey: string,
-  requesterId: string,
-  roles: string[],
+  claims: AccessTokenClaims,
 ): Promise<string> => {
-  return new SignJWT(createAccessTokenClaims(apiKey, requesterId, roles))
-    .setProtectedHeader({alg: 'EdDSA', typ: 'JWT'})
-    .sign(signingKey);
+  return new SignJWT(claims).setProtectedHeader({alg: 'EdDSA', typ: 'JWT'}).sign(signingKey);
 };
 
 /**

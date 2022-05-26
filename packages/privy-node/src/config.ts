@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import {createAccessToken, jwtKeyFromApiSecret} from './accessToken';
+import {createAccessTokenClaims, jwtKeyFromApiSecret, signAccessToken} from './accessToken';
 import {formatPrivyError} from './errors';
 import {AccessGroup, Field, Role, UserPermission} from './model/data';
 import {
@@ -57,6 +57,8 @@ type AliasBundle = {
   aliases: string[];
 };
 
+type SigningFn = (claims: AccessTokenClaims) => Promise<string>;
+
 export interface PrivyConfigOptions {
   /**
    * Overrides the Privy API.
@@ -68,15 +70,20 @@ export interface PrivyConfigOptions {
    */
   kmsRoute?: string;
   /**
-   * Overrides the auth signing key and disables automatic signing key generation.
+   * Overrides auth token signing and disables automatic signing key generation.
    * Custom auth public keys can be registered with Privy via the console.
    */
-  customSigningKey?: crypto.KeyObject;
+  customSigningFn?: SigningFn;
   /**
    * Overrides the default Axios timeout of 10 seconds.
    */
   timeoutMs?: number;
 }
+
+const createApiSecretSigningFn = (apiSecret: string): SigningFn => {
+  const jwtKey = jwtKeyFromApiSecret(apiSecret);
+  return (claims: AccessTokenClaims) => signAccessToken(jwtKey, claims);
+};
 
 export class PrivyConfig {
   /**
@@ -85,10 +92,10 @@ export class PrivyConfig {
    */
   private _apiKey: string;
   /**
-   * JWT signing key.
+   * JWT signing function.
    * @internal
    */
-  private _signingKey: crypto.KeyObject;
+  private _signingFn: SigningFn;
   /**
    * Privy KMS route.
    * @internal
@@ -110,7 +117,7 @@ export class PrivyConfig {
     this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
 
     // Use custom signing key if provided, otherwise generate it from the API secret.
-    this._signingKey = config.customSigningKey ?? jwtKeyFromApiSecret(apiSecret);
+    this._signingFn = config.customSigningFn ?? createApiSecretSigningFn(apiSecret);
 
     // Initialize the Axios HTTP client.
     this._axiosInstance = new Http(undefined, {
@@ -284,7 +291,8 @@ export class PrivyConfig {
    * @param roles Roles the data requester should have with the access token.
    */
   async createAccessToken(requesterId: string, roles: string[]): Promise<string> {
-    return createAccessToken(this._signingKey, this._apiKey, requesterId, roles);
+    const claims = createAccessTokenClaims(this._apiKey, requesterId, roles);
+    return this._signingFn(claims);
   }
 
   /**
