@@ -1,8 +1,3 @@
-export interface GroupUsersResponse {
-  group_id: string;
-  user_ids: string[];
-}
-
 export interface AliasKeyResponseValue {
   key: string; // Alias key as base64 string.
 }

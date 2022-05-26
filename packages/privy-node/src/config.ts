@@ -1,21 +1,22 @@
 import crypto from 'crypto';
 import {createAccessToken, createAccessTokenClaims, jwtKeyFromApiSecret} from './accessToken';
 import {formatPrivyError, PrivyClientError} from './errors';
-import {AccessTokenClaims, Field, FieldPermission, Group, Role} from './model/data';
+import {AccessGroup, AccessTokenClaims, Field, Role, UserPermission} from './model/data';
 import {
   AliasKeyRequest,
   AliasWrapperKeyRequest,
-  AddUserToGroupRequest,
   CreateFieldRequest,
-  CreateOrUpdateGroupRequest,
-  CreateOrUpdateRoleRequest,
+  UpdateRoleRequest,
+  CreateRoleRequest,
+  CreateAccessGroupRequest,
   UpdateFieldRequest,
+  UpdateAccessGroupRequest,
   EncryptedAliasRequestValue,
 } from './model/requests';
 import {wrapAsBuffer} from './encoding';
 import {mapPairs} from './utils';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
-import {AliasKeyResponse, EncryptedAliasResponse, GroupUsersResponse} from './model/responses';
+import {AliasKeyResponse, EncryptedAliasResponse} from './model/responses';
 import {WrapperKeyResponseValue} from './types';
 import {Http} from './http';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
@@ -34,15 +35,21 @@ const aliasWrapperKeyPath = () => `/key_manager/alias_wrapper_keys`;
 const aliasKeyPath = () => `/key_manager/alias_keys`;
 const fieldsPath = () => '/fields';
 const fieldPath = (fieldId: string) => `/fields/${fieldId}`;
-const fieldPermissionsPath = (fieldId: string) => `/permissions/fields/${fieldId}`;
-const fieldPermissionsForGroupPath = (fieldId: string, groupId: string) =>
-  `/permissions/fields/${fieldId}/groups/${groupId}`;
 const rolesPath = () => '/roles';
 const rolePath = (roleId: string) => `/roles/${roleId}`;
-const groupsPath = () => '/groups';
-const groupPath = (groupId: string) => `/groups/${groupId}`;
-const groupUsersPath = (groupId: string) => `/groups/${groupId}/users`;
-const groupUserPath = (groupId: string, userId: string) => `/groups/${groupId}/users/${userId}`;
+const accessGroupsPath = () => '/access_groups';
+const accessGroupPath = (accessGroupId: string) => `/access_groups/${accessGroupId}`;
+const userPermissionsPath = (userId: string, fieldIds?: string[]) => {
+  if (Array.isArray(fieldIds)) {
+    return `/users/${userId}/permissions?field_ids=${fieldIds.join(',')}`;
+  } else {
+    return `/users/${userId}/permissions`;
+  }
+};
+const requesterRolesPath = (requesterId: string) => `/requesters/${requesterId}/roles`;
+const roleRequestersPath = (roleId: string) => `/roles/${roleId}/requesters`;
+const roleRequesterPath = (roleId: string, requesterId: string) =>
+  `/roles/${roleId}/requesters/${requesterId}`;
 
 // Data type to represent all id's that are aliased together.
 type AliasBundle = {
@@ -78,11 +85,6 @@ export class PrivyConfig {
    */
   private _apiKey: string;
   /**
-   * Privy API secret.
-   * @internal
-   */
-  private _apiSecret: string;
-  /**
    * If true, do not enable access token issuance from auto-generated JWT signing keys.
    * This is a precaution, as any access tokens signed with auto-generated keys will not
    * work if an custom key override is entered via the console.
@@ -109,9 +111,7 @@ export class PrivyConfig {
    * Construct the Privy instance using a Privy API key pair and configuration options.
    */
   constructor(apiKey: string, apiSecret: string, config: PrivyConfigOptions = {}) {
-    // Store the Privy API key pair.
     this._apiKey = apiKey;
-    this._apiSecret = apiSecret;
 
     // Store the Privy KMS route.
     this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
@@ -325,22 +325,14 @@ export class PrivyConfig {
 
   /**
    * Create a field.
-   * @param name Unique name for the field.
-   * @param description Arbitrary string attached to the field.
-   * @param permissions The set of permissions on the field.
+   * @param attributes
+   * @param attributes.name The field name of which the field id is derived.
+   * @param attributes.description Description of the field's purpose.
+   * @param attributes.default_access_group The default access group for this field.
    */
-  async createField(
-    name: string,
-    description: string,
-    permissions: FieldPermission[],
-  ): Promise<Field> {
-    const request: CreateFieldRequest = {
-      name,
-      description,
-      permissions,
-    };
+  async createField(attributes: CreateFieldRequest): Promise<Field> {
     try {
-      const response = await this._axiosInstance.post<Field>(fieldsPath(), request);
+      const response = await this._axiosInstance.post<Field>(fieldsPath(), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -362,17 +354,14 @@ export class PrivyConfig {
 
   /**
    * Update a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param name Unique name for the field.
-   * @param description Arbitrary string attached to the field.
+   * @param attributes
+   * @param attributes.name The field name of which the field id is derived.
+   * @param attributes.description Description of the field's purpose.
+   * @param attributes.default_access_group The default access group for this field.
    */
-  async updateField(fieldId: string, name: string, description: string): Promise<Field> {
-    const request: UpdateFieldRequest = {
-      name,
-      description,
-    };
+  async updateField(fieldId: string, attributes: UpdateFieldRequest): Promise<Field> {
     try {
-      const response = await this._axiosInstance.post<Field>(fieldPath(fieldId), request);
+      const response = await this._axiosInstance.post<Field>(fieldPath(fieldId), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -386,108 +375,6 @@ export class PrivyConfig {
   async deleteField(fieldId: string): Promise<void> {
     try {
       await this._axiosInstance.delete(fieldPath(fieldId));
-      return;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Get permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   */
-  async getFieldPermissions(fieldId: string): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.get<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Update permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param permissions New permissions for the field.
-   */
-  async updateFieldPermissions(
-    fieldId: string,
-    permissions: FieldPermission[],
-  ): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.post<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-        permissions,
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete permissions for a field.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   */
-  async deleteFieldPermissions(fieldId: string): Promise<FieldPermission[]> {
-    try {
-      const response = await this._axiosInstance.delete<FieldPermission[]>(
-        fieldPermissionsPath(fieldId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Get permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async getFieldPermissionForGroup(fieldId: string, groupId: string): Promise<FieldPermission> {
-    try {
-      const response = await this._axiosInstance.get<FieldPermission>(
-        fieldPermissionsForGroupPath(fieldId, groupId),
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Set permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param permission New permission for the field and group.
-   */
-  async setFieldPermissionForGroup(
-    fieldId: string,
-    groupId: string,
-    permission: Omit<FieldPermission, 'group_id'>,
-  ): Promise<FieldPermission> {
-    try {
-      const response = await this._axiosInstance.post<FieldPermission>(
-        fieldPermissionsForGroupPath(fieldId, groupId),
-        permission,
-      );
-      return response.data;
-    } catch (error) {
-      throw formatPrivyError(error);
-    }
-  }
-
-  /**
-   * Delete permissions for a field and a group.
-   * @param fieldId Unique alphanumeric identifier for the field.
-   * @param groupId Unique alphanumeric identifier for the group.
-   */
-  async deleteFieldPermissionForGroup(fieldId: string, groupId: string): Promise<void> {
-    try {
-      await this._axiosInstance.delete(fieldPermissionsForGroupPath(fieldId, groupId));
       return;
     } catch (error) {
       throw formatPrivyError(error);
@@ -509,16 +396,13 @@ export class PrivyConfig {
 
   /**
    * Create a role.
-   * @param name Unique name for the role.
-   * @param description Arbitrary string attached to the role.
+   * @param attributes
+   * @param attributes.name Unique name for the role.
+   * @param attributes.description Arbitrary string attached to the role.
    */
-  async createRole(name: string, description: string): Promise<Role> {
-    const request: CreateOrUpdateRoleRequest = {
-      name,
-      description,
-    };
+  async createRole(attributes: CreateRoleRequest): Promise<Role> {
     try {
-      const response = await this._axiosInstance.post<Role>(rolesPath(), request);
+      const response = await this._axiosInstance.post<Role>(rolesPath(), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -542,16 +426,13 @@ export class PrivyConfig {
    * Update a role.
    * Default roles cannot be updated.
    * @param roleId Unique alphanumeric identifier for the role.
-   * @param name Unique name for the role.
-   * @param description Arbitrary string attached to the role.
+   * @param attributes
+   * @param attributes.name Unique name for the role.
+   * @param attributes.description Arbitrary string attached to the role.
    */
-  async updateRole(roleId: string, name: string, description: string): Promise<Role> {
-    const request: CreateOrUpdateRoleRequest = {
-      name,
-      description,
-    };
+  async updateRole(roleId: string, attributes: UpdateRoleRequest): Promise<Role> {
     try {
-      const response = await this._axiosInstance.post<Role>(rolePath(roleId), request);
+      const response = await this._axiosInstance.post<Role>(rolePath(roleId), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -573,12 +454,12 @@ export class PrivyConfig {
   }
 
   /**
-   * List all groups.
-   * Retrieves all the defined groups for this account.
+   * List all access groups.
+   * Retrieves all the defined access groups for this account.
    */
-  async listGroups(): Promise<Group[]> {
+  async listAccessGroups(): Promise<AccessGroup[]> {
     try {
-      const response = await this._axiosInstance.get<Group[]>(groupsPath());
+      const response = await this._axiosInstance.get<AccessGroup[]>(accessGroupsPath());
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -586,17 +467,16 @@ export class PrivyConfig {
   }
 
   /**
-   * Create a group.
-   * @param name Unique name for the group.
-   * @param description Arbitrary string attached to the group.
+   * Create an access group.
+   * @param attributes
+   * @param attributes.name The access group name of which the access group id is derived.
+   * @param attributes.description Description of the access group's purpose.
+   * @param attributes.read_roles List of role ids that have READ permission in this group.
+   * @param attributes.write_roles List of role ids that have WRITE permission in this group.
    */
-  async createGroup(name: string, description: string): Promise<Group> {
-    const request: CreateOrUpdateGroupRequest = {
-      name,
-      description,
-    };
+  async createAccessGroup(attributes: CreateAccessGroupRequest): Promise<AccessGroup> {
     try {
-      const response = await this._axiosInstance.post<Group>(groupsPath(), request);
+      const response = await this._axiosInstance.post<AccessGroup>(accessGroupsPath(), attributes);
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -604,12 +484,12 @@ export class PrivyConfig {
   }
 
   /**
-   * Retrieve a group.
-   * @param groupId Unique alphanumeric identifier for the group.
+   * Retrieve an access group.
+   * @param accessGroupId The id of the access group.
    */
-  async getGroup(groupId: string): Promise<Group> {
+  async getAccessGroup(accessGroupId: string): Promise<AccessGroup> {
     try {
-      const response = await this._axiosInstance.get<Group>(groupPath(groupId));
+      const response = await this._axiosInstance.get<AccessGroup>(accessGroupPath(accessGroupId));
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -617,19 +497,24 @@ export class PrivyConfig {
   }
 
   /**
-   * Update a group.
-   * Default groups cannot be updated.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param name Unique name for the group.
-   * @param description Arbitrary string attached to the group.
+   * Update an access group.
+   * Default access groups cannot be updated.
+   * @param accessGroupId The id of the access group.
+   * @param attributes
+   * @param attributes.name The access group name of which the access group id is derived.
+   * @param attributes.description Description of the access group's purpose.
+   * @param attributes.read_roles List of role ids that have READ permission in this group.
+   * @param attributes.write_roles List of role ids that have WRITE permission in this group.
    */
-  async updateGroup(groupId: string, name: string, description: string): Promise<Group> {
-    const request: CreateOrUpdateGroupRequest = {
-      name,
-      description,
-    };
+  async updateAccessGroup(
+    accessGroupId: string,
+    attributes: UpdateAccessGroupRequest,
+  ): Promise<AccessGroup> {
     try {
-      const response = await this._axiosInstance.post<Group>(groupPath(groupId), request);
+      const response = await this._axiosInstance.post<AccessGroup>(
+        accessGroupPath(accessGroupId),
+        attributes,
+      );
       return response.data;
     } catch (error) {
       throw formatPrivyError(error);
@@ -637,13 +522,13 @@ export class PrivyConfig {
   }
 
   /**
-   * Delete a group.
-   * Default groups cannot be deleted.
-   * @param groupId Unique alphanumeric identifier for the group.
+   * Delete an access group
+   * Default access groups cannot be deleted.
+   * @param accessGroupId The id of the access group.
    */
-  async deleteGroup(groupId: string): Promise<void> {
+  async deleteAccessGroup(accessGroupId: string): Promise<void> {
     try {
-      await this._axiosInstance.delete(groupPath(groupId));
+      await this._axiosInstance.delete(accessGroupPath(accessGroupId));
       return;
     } catch (error) {
       throw formatPrivyError(error);
@@ -651,43 +536,96 @@ export class PrivyConfig {
   }
 
   /**
-   * Get the users in a group.
-   * @param groupId Unique alphanumeric identifier for the group.
+   * Get the permissions required for accessing a given user's data.
+   * @param userId The id of the user to fetch permissions for.
+   * @param fieldIds Optional list of field ids to scope the request to.
    */
-  async listUsersInGroup(groupId: string): Promise<string[]> {
+  async getUserPermissions(userId: string, fieldIds?: string[]): Promise<UserPermission[]> {
     try {
-      const response = await this._axiosInstance.get<GroupUsersResponse>(groupUsersPath(groupId));
-      return response.data.user_ids;
+      const response = await this._axiosInstance.get<{data: UserPermission[]}>(
+        userPermissionsPath(userId, fieldIds),
+      );
+      return response.data.data;
     } catch (error) {
       throw formatPrivyError(error);
     }
   }
 
   /**
-   * Add a user to a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param userId Unique alphanumeric identifier for the user.
+   * Update the permissions required for accessing a given user's data.
+   * @param userId The id of the user to fetch permissions for.
+   * @param permissions A list of permissions objects.
    */
-  async addUserToGroup(groupId: string, userId: string): Promise<void> {
+  async updateUserPermissions(
+    userId: string,
+    permissions: UserPermission[],
+  ): Promise<UserPermission[]> {
     try {
-      const request: AddUserToGroupRequest = {
-        user_id: userId,
-      };
-      await this._axiosInstance.post<GroupUsersResponse>(groupUsersPath(groupId), request);
-      return;
+      const response = await this._axiosInstance.post<{data: UserPermission[]}>(
+        userPermissionsPath(userId),
+        {data: permissions},
+      );
+      return response.data.data;
     } catch (error) {
       throw formatPrivyError(error);
     }
   }
 
   /**
-   * Delete a user from a group.
-   * @param groupId Unique alphanumeric identifier for the group.
-   * @param userId Unique alphanumeric identifier for the user.
+   * Get all the roles assigned to the requester.
+   * @param requesterId The id of the requester.
    */
-  async removeUserFromGroup(groupId: string, userId: string): Promise<void> {
+  async getRequesterRoles(requesterId: string): Promise<string[]> {
     try {
-      await this._axiosInstance.delete(groupUserPath(groupId, userId));
+      const response = await this._axiosInstance.get<{role_ids: string[]}>(
+        requesterRolesPath(requesterId),
+      );
+      return response.data.role_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Get all the requesters assigned to the given role id.
+   * @param roleId The id of the role.
+   */
+  async getRoleRequesters(roleId: string): Promise<string[]> {
+    try {
+      const response = await this._axiosInstance.get<{requester_ids: string[]}>(
+        roleRequestersPath(roleId),
+      );
+      return response.data.requester_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Assign the given role to a list of requesters.
+   * @param roleId The id of the role.
+   * @param requesterIds A list of requester ids to assign the role.
+   */
+  async addRequestersToRole(roleId: string, requesterIds: string[]): Promise<string[]> {
+    try {
+      const response = await this._axiosInstance.post<{added_requester_ids: string[]}>(
+        roleRequestersPath(roleId),
+        {requester_ids: requesterIds},
+      );
+      return response.data.added_requester_ids;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
+   * Remove the requester from the given role.
+   * @param roleId The id of the role.
+   * @param requesterId The requester to remove from the role.
+   */
+  async removeRequesterFromRole(roleId: string, requesterId: string): Promise<void> {
+    try {
+      await this._axiosInstance.delete(roleRequesterPath(roleId, requesterId));
       return;
     } catch (error) {
       throw formatPrivyError(error);

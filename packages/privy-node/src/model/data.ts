@@ -20,43 +20,21 @@ export interface Field {
    */
   field_id: string;
   /**
-   * Unique name for the field.
+   * The name of the field.
    */
   name: string;
   /**
-   * Arbitrary string description attached to the field.
+   * The description of the field's purpose.
    */
   description: string;
   /**
-   * Set of permissions associated to this field.
-   * Includes roles with read and write access for data associated with a given group's users.
+   * The default access group id assigned to the field.
    */
-  permissions: FieldPermission[];
+  default_access_group: string;
   /**
    * Last updated timestamp.
    */
   updated_at: number;
-}
-
-/**
- * Permissions in Privy are expressed on fields.
- */
-export interface FieldPermission {
-  /**
-   * Unique alphanumeric identifier for the group on which permissions are scoped.
-   * If empty, updates permissions for the default group.
-   */
-  group_id: string;
-  /**
-   * The list of roles requesters must have to read this field's data,
-   * for users belonging to the group group_id.
-   */
-  read: string[];
-  /**
-   * The list of roles requesters must have to write this field's data,
-   * for users belonging to the group group_id.
-   */
-  write: string[];
 }
 
 /**
@@ -82,34 +60,41 @@ export interface Role {
   is_default: boolean;
 }
 
-/**
- * A group is a set of users.
- */
-export interface Group {
+export interface AccessGroup {
   /**
-   * Unique alphanumeric identifier for the group.
+   * Unique alphanumeric identifier for the access group.
    */
-  group_id: string;
+  access_group_id: string;
   /**
-   * Unique name for the group.
+   * Unique name for the access group.
    */
   name: string;
   /**
-   * Arbitrary string description attached to the group.
+   * Arbitrary string description attached to the access group.
    */
   description: string;
   /**
-   * Indicates whether the group is a default Privy group.
-   * Default groups cannot be updated or deleted.
+   * List of role ids that have READ permission in this group.
+   */
+  read_roles: string[];
+  /**
+   * List of role ids that have WRITE permission in this group.
+   */
+  write_roles: string[];
+  /**
+   * Indicates whether the access group is a default Privy access group.
+   * Default access groups cannot be updated or deleted.
    */
   is_default: boolean;
 }
 
-export interface EncryptedBufferData {
+export interface UserPermission {
+  /**
+   * The id of the field this permission is defined for.
+   */
   field_id: string;
-  buffer: Buffer;
-  content_type: string;
-  file_id: string;
-  content_md5: string;
-  wrapper_key_id: string;
+  /**
+   * The id of the access group assigned to the field.
+   */
+  access_group: string;
 }
