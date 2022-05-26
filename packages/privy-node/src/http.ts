@@ -1,5 +1,4 @@
 import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
-import {Session} from './sessions';
 import {wrapApiError} from './errors';
 
 interface DefaultsType {
@@ -12,11 +11,11 @@ interface DefaultsType {
 }
 
 export class Http {
-  private session?: Session;
+  private authenticate?: () => Promise<string>;
   private defaults: DefaultsType;
 
-  constructor(session: Session | undefined, defaults: DefaultsType) {
-    this.session = session;
+  constructor(authenticate: (() => Promise<string>) | undefined, defaults: DefaultsType) {
+    this.authenticate = authenticate;
     this.defaults = defaults;
   }
 
@@ -24,16 +23,8 @@ export class Http {
     path: string,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    if (this.session) {
-      const authenticated = await this.session.isAuthenticated();
-
-      if (!authenticated) {
-        await this.session.authenticate();
-      }
-    }
-
     try {
-      return axios.get(path, this.buildConfig(config));
+      return axios.get(path, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
@@ -44,16 +35,8 @@ export class Http {
     data?: D,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    if (this.session) {
-      const authenticated = await this.session.isAuthenticated();
-
-      if (!authenticated) {
-        await this.session.authenticate();
-      }
-    }
-
     try {
-      return axios.post(path, data, this.buildConfig(config));
+      return axios.post(path, data, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
@@ -63,27 +46,20 @@ export class Http {
     path: string,
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
-    if (this.session) {
-      const authenticated = await this.session.isAuthenticated();
-
-      if (!authenticated) {
-        await this.session.authenticate();
-      }
-    }
-
     try {
-      return axios.delete(path, this.buildConfig(config));
+      return axios.delete(path, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
   }
 
-  private buildConfig(config?: AxiosRequestConfig): AxiosRequestConfig {
+  private async buildConfig(config?: AxiosRequestConfig): Promise<AxiosRequestConfig> {
     config = config || {};
     config.headers = config.headers || {};
 
-    if (this.session && this.session.token !== null) {
-      config.headers.authorization = `Bearer ${this.session.token}`;
+    if (this.authenticate) {
+      const token = await this.authenticate();
+      config.headers.authorization = `Bearer ${token}`;
     }
 
     return {...this.defaults, ...config};
