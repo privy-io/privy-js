@@ -3,4 +3,4 @@ export {PrivyConfig} from './config';
 
 export {FieldInstance} from './fieldInstance';
 
-export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';
+export {PrivyError, PrivyApiError, PrivyClientError} from './errors';
