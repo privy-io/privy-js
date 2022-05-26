@@ -24,7 +24,7 @@ export class Http {
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
     try {
-      return axios.get(path, await this.buildConfig(config));
+      return await axios.get(path, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
@@ -36,7 +36,7 @@ export class Http {
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
     try {
-      return axios.post(path, data, await this.buildConfig(config));
+      return await axios.post(path, data, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
@@ -47,7 +47,7 @@ export class Http {
     config?: AxiosRequestConfig<D>,
   ): Promise<R> {
     try {
-      return axios.delete(path, await this.buildConfig(config));
+      return await axios.delete(path, await this.buildConfig(config));
     } catch (e) {
       throw wrapApiError(e);
     }
