@@ -63,9 +63,6 @@ const createApiSecretSigningFn = (apiSecret: string): SigningFn => {
   return (claims: AccessTokenClaims) => signAccessToken(jwtKey, claims);
 };
 
-/**
- * @internal
- */
 export class PrivyConfig {
   /**
    * Privy API key.
@@ -89,9 +86,9 @@ export class PrivyConfig {
   private _axiosInstance: Http;
 
   /**
-   * Construct the Privy instance using a Privy API key pair and configuration options.
+   * @internal
    */
-  constructor(
+  protected constructor(
     apiKey: string,
     apiSecret: string,
     config: {
@@ -167,6 +164,9 @@ export class PrivyConfig {
     return response.data.data.map(({key}) => Buffer.from(key, 'base64'));
   }
 
+  /**
+   * @internal
+   */
   private async _decryptAliases(encAliasResponse: EncryptedAliasResponse): Promise<AliasBundle> {
     if (encAliasResponse.encrypted_aliases.length === 0) {
       return {primary_user_id: encAliasResponse.primary_user_id, aliases: []};
