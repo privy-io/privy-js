@@ -1,8 +1,8 @@
 import axios from 'axios';
 import {PrivyClient, FieldInstance} from '../../src';
 
-const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
-const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
+const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
+const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
 
 // If these are omitted, a new API key pair will be generated using the default dev console login.
@@ -53,8 +53,8 @@ describe('Privy client', () => {
 
   beforeAll(() => {
     client = new PrivyClient(PRIVY_API_PUBLIC_KEY!, PRIVY_API_SECRET_KEY!, {
-      apiURL: PRIVY_API,
-      kmsURL: PRIVY_KMS,
+      apiURL: PRIVY_API_URL,
+      kmsURL: PRIVY_KMS_URL,
     });
   });
 
