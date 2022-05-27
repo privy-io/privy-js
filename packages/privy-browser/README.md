@@ -71,7 +71,7 @@ npm test
 
 ### Integration
 
-Some of the tests are currently expected to be run against a running instance of the API. To successfully run those, you will need to create a `.env` file in the root of this repo with the following fields:
+Some of the tests are currently expected to be run against a running instance of the API. To successfully run those, you will need to create a `.env` file in the root of `./privy-browser` with the following fields:
 
 ```
 PRIVY_API_URL=<privy api url>

@@ -1,8 +1,8 @@
 import axios from 'axios';
 import {PrivyClient, FieldInstance, CustomSession} from '../../src';
 
-const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
-const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
+const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
+const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
 
 // If these are omitted, a new API key pair will be generated using the default dev console login.
@@ -56,7 +56,7 @@ describe('Privy client', () => {
   // can recognize the signature of is valid.
   const customSession = new CustomSession(async function authenticate() {
     const response = await axios.post<{token: string}>(
-      `${process.env.PRIVY_API_URL}/auth/token`,
+      `${PRIVY_API_URL}/auth/token`,
       {requester_id: userID, roles: []},
       {
         auth: {
@@ -69,8 +69,8 @@ describe('Privy client', () => {
   });
 
   const client = new PrivyClient({
-    apiURL: process.env.PRIVY_API_URL,
-    kmsURL: process.env.PRIVY_KMS_URL,
+    apiURL: PRIVY_API_URL,
+    kmsURL: PRIVY_KMS_URL,
     session: customSession,
   });
 

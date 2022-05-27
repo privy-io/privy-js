@@ -11,7 +11,7 @@ describe('PrivyNode', () => {
       process.env.PRIVY_API_SECRET_KEY!,
       {
         apiURL: process.env.PRIVY_API_URL!,
-        kmsURL: process.env.PRIVY_API_URL!,
+        kmsURL: process.env.PRIVY_KMS_URL!,
         timeout: 0,
       },
     );
