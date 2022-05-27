@@ -2,9 +2,17 @@
 
 JavaScript library for encrypting and decrypting data with Privy.
 
-This library is intended to be used by the `@privy-io/privy-browser` and `@privy-io/node` libraries to handle all cryptographic operations.
+This library is intended to be used by the [`@privy-io/privy-browser`](https://www.npmjs.com/package/@privy-io/privy-browser) and [`@privy-io/privy-node`](https://www.npmjs.com/package/@privy-io/privy-node) libraries to handle all cryptographic operations.
 
+https://www.privy.io
+
+![build](https://github.com/privy-io/privy-js/actions/workflows/tests.yml/badge.svg)
 [![npm version](https://badge.fury.io/js/@privy-io%2Fcrypto.svg)](https://www.npmjs.com/package/@privy-io/crypto)
+
+## Documentation
+
+See https://docs.privy.io/.
+
 
 ## Installation
 
