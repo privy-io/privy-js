@@ -1,6 +1,8 @@
 # @privy-io/privy-browser
 
-Browser client for the Privy API.
+Privy's browser client allows you to interact with the Privy API from broswer clients.
+
+For interacting with user data from a node backend, use @privy-io/privy-node.
 
 https://www.privy.io
 
