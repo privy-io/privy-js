@@ -53,9 +53,7 @@ await client.deleteAccessGroup(accessGroupId);
 const permissions = await client.getUserPermissions(userId);
 ```
 
-Using the Privy node client, you can also read and write some data for a given user.
-
-TODO
+Using `privy-node`, you can also read and write some data for a given user.
 
 ```typescript
 const userId = "0x123";
