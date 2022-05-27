@@ -1,8 +1,23 @@
 {
   "name": "@privy-io/privy-node",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Node server-side client for the Privy API",
-  "homepage": "https://privy.io",
+  "keywords": [
+    "privy",
+    "privacy",
+    "storage",
+    "user data",
+    "encryption",
+    "decryption",
+    "cryptography",
+    "web3"
+  ],
+  "homepage": "https://github.com/privy-io/privy-js/tree/main/packages/privy-node",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/privy-io/privy-js.git",
+    "directory": "packages/privy-node"
+  },
   "license": "Apache-2.0",
   "exports": {
     ".": "./dist/index.js"

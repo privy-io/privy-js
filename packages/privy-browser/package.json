@@ -1,12 +1,7 @@
 {
   "name": "@privy-io/privy-browser",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "description": "Browser client for the Privy API",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "files": [
-    "dist/**/*"
-  ],
   "keywords": [
     "privy",
     "privacy",
@@ -17,19 +12,27 @@
     "cryptography",
     "web3"
   ],
+  "homepage": "https://github.com/privy-io/privy-js/tree/main/packages/privy-browser",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/privy-io/privy-js.git",
+    "directory": "packages/privy-browser"
+  },
   "license": "Apache-2.0",
-  "homepage": "https://privy.io",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "jest --testMatch \"**/test/unit/**/*.test.ts\"",
     "test-integration": "jest --testMatch \"**/test/integration/**/*.test.ts\""
-  },
-  "devDependencies": {
-    "@types/jsonwebtoken": "^8.5.8",
-    "@types/md5": "^2.3.2",
-    "jsonwebtoken": "^8.5.1"
   },
   "dependencies": {
     "@ethersproject/address": "^5.6.0",
@@ -39,5 +42,10 @@
     "dotenv": "^16.0.0",
     "jwt-decode": "^3.1.2",
     "md5": "^2.3.0"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^8.5.8",
+    "@types/md5": "^2.3.2",
+    "jsonwebtoken": "^8.5.1"
   }
 }
