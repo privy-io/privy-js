@@ -9,6 +9,11 @@ https://www.privy.io
 ![build](https://github.com/privy-io/privy-js/actions/workflows/tests.yml/badge.svg)
 [![npm version](https://badge.fury.io/js/@privy-io%2Fbrowser.svg)](https://www.npmjs.com/package/@privy-io/privy-browser)
 
+
+## Documentation
+
+See https://docs.privy.io/.
+
 ## Installation
 
 ```
