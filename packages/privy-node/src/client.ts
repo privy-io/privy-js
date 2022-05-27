@@ -1,7 +1,6 @@
 import FormData from 'form-data';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {Http} from './http';
-import {Session} from './sessions';
 import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 import {
   dataKeyPath,
@@ -48,9 +47,9 @@ export class PrivyClient {
    */
   constructor(options: {
     /**
-     * An object that implements the {@link Session} interface.
+     * Custom authenticate function. Must return a valid JWT on success.
      */
-    session: Session;
+    authenticate: () => Promise<string>;
     /**
      * The URL of the Privy API. Defaults to `https://api.privy.io/v0`.
      */
@@ -64,18 +63,16 @@ export class PrivyClient {
      */
     timeout?: number;
   }) {
-    options.session;
-
     const apiURL = options.apiURL || PRIVY_API_URL;
     const kmsURL = options.kmsURL || PRIVY_KMS_URL;
     const timeout = options.timeout || DEFAULT_TIMEOUT_MS;
 
-    this.api = new Http(options.session, {
+    this.api = new Http(options.authenticate, {
       baseURL: apiURL,
       timeout: timeout,
     });
 
-    this.kms = new Http(options.session, {
+    this.kms = new Http(options.authenticate, {
       baseURL: kmsURL,
       timeout: timeout,
     });

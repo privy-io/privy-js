@@ -55,17 +55,6 @@ export class PrivyClientError extends PrivyError {
   }
 }
 
-/**
- * The Session instance threw an exception.
- */
-export class PrivySessionError extends PrivyError {
-  type = 'session_error';
-
-  constructor(message: string, cause?: unknown) {
-    super(message, cause);
-  }
-}
-
 export const wrapApiError = (error: unknown): unknown => {
   if (!axios.isAxiosError(error)) {
     return formatPrivyError(error);

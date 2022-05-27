@@ -1,5 +1,5 @@
 import axios from 'axios';
-import {PrivyClient, FieldInstance, CustomSession} from '../../src';
+import {PrivyClient, FieldInstance} from '../../src';
 
 const PRIVY_API = process.env.PRIVY_API || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS = process.env.PRIVY_KMS || 'http://127.0.0.1:2424/v0';
@@ -54,7 +54,7 @@ describe('Privy client', () => {
   // secret key is not exposed on clients. However, any
   // async function that returns a string JWT that Privy
   // can recognize the signature of is valid.
-  const customSession = new CustomSession(async function authenticate() {
+  async function authenticate() {
     const response = await axios.post<{token: string}>(
       `${PRIVY_API}/auth/token`,
       {requester_id: userID, roles: []},
@@ -66,12 +66,12 @@ describe('Privy client', () => {
       },
     );
     return response.data.token;
-  });
+  }
 
   const client = new PrivyClient({
+    authenticate,
     apiURL: PRIVY_API,
     kmsURL: PRIVY_KMS,
-    session: customSession,
   });
 
   it('get / put api', async () => {
