@@ -1,5 +1,4 @@
 export {PrivyClient} from './client';
-export {PrivyConfig} from './config';
 
 export {FieldInstance} from './fieldInstance';
 

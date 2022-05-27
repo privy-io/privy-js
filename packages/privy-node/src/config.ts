@@ -19,7 +19,6 @@ import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {AliasKeyResponse, EncryptedAliasResponse} from './model/responses';
 import {WrapperKeyResponseValue} from './types';
 import {Http} from './http';
-import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
@@ -57,28 +56,7 @@ type AliasBundle = {
   aliases: string[];
 };
 
-type SigningFn = (claims: AccessTokenClaims) => Promise<string>;
-
-export interface PrivyConfigOptions {
-  /**
-   * Overrides the Privy API.
-   */
-  apiRoute?: string;
-
-  /**
-   * Overrides the Privy KMS.
-   */
-  kmsRoute?: string;
-  /**
-   * Overrides auth token signing and disables automatic signing key generation.
-   * Custom auth public keys can be registered with Privy via the console.
-   */
-  customSigningFn?: SigningFn;
-  /**
-   * Overrides the default Axios timeout of 10 seconds.
-   */
-  timeoutMs?: number;
-}
+export type SigningFn = (claims: AccessTokenClaims) => Promise<string>;
 
 const createApiSecretSigningFn = (apiSecret: string): SigningFn => {
   const jwtKey = jwtKeyFromApiSecret(apiSecret);
@@ -108,21 +86,30 @@ export class PrivyConfig {
   private _axiosInstance: Http;
 
   /**
-   * Construct the Privy instance using a Privy API key pair and configuration options.
+   * @internal
    */
-  constructor(apiKey: string, apiSecret: string, config: PrivyConfigOptions = {}) {
+  protected constructor(
+    apiKey: string,
+    apiSecret: string,
+    config: {
+      apiURL: string;
+      kmsURL: string;
+      timeout: number;
+      customSigningFn?: SigningFn;
+    },
+  ) {
     this._apiKey = apiKey;
 
     // Store the Privy KMS route.
-    this._kmsRoute = config.kmsRoute || PRIVY_KMS_URL;
+    this._kmsRoute = config.kmsURL;
 
     // Use custom signing key if provided, otherwise generate it from the API secret.
     this._signingFn = config.customSigningFn ?? createApiSecretSigningFn(apiSecret);
 
     // Initialize the Axios HTTP client.
     this._axiosInstance = new Http(undefined, {
-      baseURL: config.apiRoute || PRIVY_API_URL,
-      timeout: config.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      baseURL: config.apiURL,
+      timeout: config.timeout,
       auth: {
         username: apiKey,
         password: apiSecret,
@@ -177,6 +164,9 @@ export class PrivyConfig {
     return response.data.data.map(({key}) => Buffer.from(key, 'base64'));
   }
 
+  /**
+   * @internal
+   */
   private async _decryptAliases(encAliasResponse: EncryptedAliasResponse): Promise<AliasBundle> {
     if (encAliasResponse.encrypted_aliases.length === 0) {
       return {primary_user_id: encAliasResponse.primary_user_id, aliases: []};
@@ -288,10 +278,9 @@ export class PrivyConfig {
   /**
    * Generate a Privy access token for the given data requester.
    * @param requesterId Data requester user ID.
-   * @param roles Roles the data requester should have with the access token.
    */
-  async createAccessToken(requesterId: string, roles: string[]): Promise<string> {
-    const claims = createAccessTokenClaims(this._apiKey, requesterId, roles);
+  async createAccessToken(requesterId: string): Promise<string> {
+    const claims = createAccessTokenClaims(this._apiKey, requesterId);
     return this._signingFn(claims);
   }
 

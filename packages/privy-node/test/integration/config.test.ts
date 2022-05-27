@@ -1,17 +1,18 @@
-import {PrivyConfig as PrivyNode} from '../../src';
+import {PrivyClient} from '../../src';
 import uniqueId from '../unique_id';
 
 describe('PrivyNode', () => {
-  let privyNode: PrivyNode;
+  let privyNode: PrivyClient;
 
   beforeEach(async () => {
     // Create a config API instance.
-    privyNode = new PrivyNode(
+    privyNode = new PrivyClient(
       process.env.PRIVY_API_PUBLIC_KEY!,
       process.env.PRIVY_API_SECRET_KEY!,
       {
-        apiRoute: process.env.PRIVY_API_URL!,
-        timeoutMs: 0,
+        apiURL: process.env.PRIVY_API_URL!,
+        kmsURL: process.env.PRIVY_API_URL!,
+        timeout: 0,
       },
     );
   });
