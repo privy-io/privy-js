@@ -18,13 +18,9 @@ export const signAccessToken = (
 };
 
 /**
- * getAccessTokenClaims returns access token claims associating a data requester with a set of roles.
+ * Returns access token claims for the given data requester.
  */
-export const createAccessTokenClaims = (
-  apiKey: string,
-  requesterId: string,
-  roles: string[],
-): AccessTokenClaims => {
+export const createAccessTokenClaims = (apiKey: string, requesterId: string): AccessTokenClaims => {
   const TEN_MINUTES_IN_SECONDS = 600;
   const issuedAt = secondsSinceEpoch();
   const expiration = issuedAt + TEN_MINUTES_IN_SECONDS;
@@ -34,7 +30,8 @@ export const createAccessTokenClaims = (
     exp: expiration,
     iat: issuedAt,
     iss: apiKey,
-    rls: roles,
+    // TODO: Roles are computed by the backend, but the token schema currently still requires this field to be an array.
+    rls: [],
     sub: requesterId,
   };
 };

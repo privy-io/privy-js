@@ -278,10 +278,9 @@ export class PrivyConfig {
   /**
    * Generate a Privy access token for the given data requester.
    * @param requesterId Data requester user ID.
-   * @param roles Roles the data requester should have with the access token.
    */
-  async createAccessToken(requesterId: string, roles: string[]): Promise<string> {
-    const claims = createAccessTokenClaims(this._apiKey, requesterId, roles);
+  async createAccessToken(requesterId: string): Promise<string> {
+    const claims = createAccessTokenClaims(this._apiKey, requesterId);
     return this._signingFn(claims);
   }
 

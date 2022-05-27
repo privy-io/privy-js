@@ -84,7 +84,7 @@ export class PrivyClient extends PrivyConfig {
       customSigningFn: options.customSigningFn,
     });
 
-    const authenticate = () => super.createAccessToken(apiKey, ['admin']);
+    const authenticate = () => super.createAccessToken(apiKey);
 
     this.api = new Http(authenticate, {
       baseURL: apiURL,
