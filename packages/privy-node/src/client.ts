@@ -1,7 +1,7 @@
 import FormData from 'form-data';
 import {CryptoEngine, CryptoVersion} from '@privy-io/crypto';
 import {Http} from './http';
-import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS} from './constants';
+import {PRIVY_API_URL, PRIVY_KMS_URL, DEFAULT_TIMEOUT_MS, REQUESTER_ID_ADMIN} from './constants';
 import {
   dataKeyPath,
   fileDownloadsPath,
@@ -84,7 +84,7 @@ export class PrivyClient extends PrivyConfig {
       customSigningFn: options.customSigningFn,
     });
 
-    const authenticate = () => super.createAccessToken(apiKey);
+    const authenticate = () => super.createAccessToken(REQUESTER_ID_ADMIN);
 
     this.api = new Http(authenticate, {
       baseURL: apiURL,
