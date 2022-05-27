@@ -7,7 +7,7 @@ For interacting with user data in the browser, use [@privy-io/privy-browser](htt
 https://www.privy.io
 
 ![build](https://github.com/privy-io/privy-js/actions/workflows/tests.yml/badge.svg)
-[![npm version](https://badge.fury.io/js/@privy-io%2Fbrowser.svg)](https://www.npmjs.com/package/@privy-io/privy-node)
+[![npm version](https://badge.fury.io/js/@privy-io%2Fprivy-node.svg)](https://www.npmjs.com/package/@privy-io/privy-node)
 
 
 ## Documentation
@@ -29,31 +29,28 @@ npm i @privy-io/privy-node
 Initialize the Privy client using a session that can fetch tokens from Privy through your backend.
 
 ```typescript
-import axios from 'axios';
 import {PrivyClient} from '@privy-io/privy-node';
 
- privyNode = new PrivyClient(
-      PRIVY_API_PUBLIC_KEY!,
-      PRIVY_API_SECRET_KEY!,
-    );
-  });
+const client = new PrivyClient(
+  process.env.PRIVY_API_KEY,
+  process.env.PRIVY_API_SECRET,
+);
 ```
 
 Using the Privy node client, configure your Privy datastore.
 
 ```typescript
-  // GET fields
-  const fields = await privyNode.listFields();
-  
-  // CREATE new field
-  field = await privyNode.createField({name: name, description: 'A field'});
-  
-  // DELETE access group
-  await privyNode.deleteAccessGroup(accessGroupId);
-  
-  // GET permisions for a user
-  permissions = await privyNode.getUserPermissions(userId);
+// GET fields
+const fields = await client.listFields();
 
+// CREATE new field
+const field = await client.createField({name: name, description: 'A field'});
+
+// DELETE access group
+await client.deleteAccessGroup(accessGroupId);
+
+// GET permisions for a user
+const permissions = await client.getUserPermissions(userId);
 ```
 
 Using the Privy node client, you can also read and write some data for a given user.
