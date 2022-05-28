@@ -47,7 +47,7 @@ beforeAll(async () => {
 });
 
 describe('Privy client', () => {
-  const userID = `0x${Date.now()}`;
+  const userID = `admin`;
 
   let client: PrivyClient;
 
