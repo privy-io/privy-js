@@ -1,5 +1,6 @@
 import axios from 'axios';
-import {PrivyClient, FieldInstance} from '../../src';
+import {fetchAPIKeys} from './api_keys';
+import {PrivyClient, FieldInstance, BatchOptions} from '../../src';
 
 const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
@@ -8,42 +9,13 @@ const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/consol
 // If these are omitted, a new API key pair will be generated using the default dev console login.
 let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
 let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
-// Convenience function to generate a new API key pair using default dev credentials.
-const fetchAPIKeys = async () => {
-  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
-    const {
-      data: {token},
-    } = await axios.post(
-      '/token',
-      {},
-      {
-        baseURL: PRIVY_CONSOLE,
-        auth: {
-          username: 'hi@acme.co',
-          password: 'acme-password1',
-        },
-      },
-    );
-    const {
-      data: {key, secret},
-    } = await axios.post(
-      '/accounts/api_keys',
-      {},
-      {
-        baseURL: PRIVY_CONSOLE,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    console.log('Generated API key pair:', key, ',', secret);
-    PRIVY_API_PUBLIC_KEY = key;
-    PRIVY_API_SECRET_KEY = secret;
-  }
-};
 
 beforeAll(async () => {
-  await fetchAPIKeys();
+  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+    const keyPair = await fetchAPIKeys(PRIVY_CONSOLE);
+    PRIVY_API_PUBLIC_KEY = keyPair.key;
+    PRIVY_API_SECRET_KEY = keyPair.secret;
+  }
 });
 
 describe('Privy client', () => {
@@ -61,12 +33,14 @@ describe('Privy client', () => {
   it('get / put api', async () => {
     let username: FieldInstance | null, email: FieldInstance | null;
 
-    email = await client.get(userID, 'email');
-    expect(email).toEqual(null);
+    // TODO(dave): Checking for initial nulls makes this test not re-runnable.
 
-    [username, email] = await client.get(userID, ['username', 'email']);
-    expect(username).toEqual(null);
-    expect(email).toEqual(null);
+    // email = await client.get(userID, 'email');
+    // expect(email).toEqual(null);
+
+    // [username, email] = await client.get(userID, ['username', 'email']);
+    // expect(username).toEqual(null);
+    // expect(email).toEqual(null);
 
     [username, email] = await client.put(userID, [
       {field: 'username', value: 'tobias'},
@@ -110,4 +84,45 @@ describe('Privy client', () => {
     expect(downloadedFile!.buffer().toString()).toEqual('file_data');
     expect(downloadedFile!.contentType).toEqual('text/plain');
   });
+
+  // it('batch get / put api', async () => {
+  //   const user0 = `0x${Date.now()}`;
+  //   let username: FieldInstance | null, email: FieldInstance | null;
+  //   [username, email] = await client.put(user0, [
+  //     {field: 'username', value: 'tobias'},
+  //     {field: 'email', value: 'tobias@funke.com'},
+  //   ]);
+  //   const user1 = `0x${Date.now()}`;
+  //   [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
+  //   const user2 = `0x${Date.now()}`;
+  //   [username] = await client.put(user2, [{field: 'username', value: 'gob'}]);
+
+  //   // Test missing cursor behavior.
+  //   let options: BatchOptions = {limit: 1};
+  //   let batchData = await client.getBatch(['username', 'email'], {
+  //     limit: 1,
+  //   });
+  //   expect(batchData.next_cursor_id).toEqual(user1);
+  //   expect(batchData.users.length).toEqual(1);
+
+  //   // Test data returned when cursor is provided.
+  //   batchData = await client.getBatch(['username', 'email'], {
+  //     cursor: user1,
+  //     limit: 2,
+  //   });
+  //   let users = batchData.users;
+  //   expect(users.length).toEqual(2);
+  //   // Check user0's data.
+  //   expect(users[0].data.length).toEqual(2);
+  //   username = users[0].data[0] as FieldInstance;
+  //   expect(username.text()).toEqual('michael');
+  //   email = users[0].data[1] as FieldInstance;
+  //   expect(email).toEqual(null);
+  //   // Check user1's data.
+  //   expect(users[1].data.length).toEqual(2);
+  //   username = users[1].data[0] as FieldInstance;
+  //   expect(username.text()).toEqual('tobias');
+  //   email = users[1].data[1] as FieldInstance;
+  //   expect(email.text()).toEqual('tobias@funke.com');
+  // });
 });
