@@ -116,9 +116,9 @@ describe('Privy client', () => {
   });
 
   it('sends email with replacement', async () => {
-    // This tests the send method E2E _minus_ the part that actually calls the
-    // /actions/send_email - we just assume it returns healthy (and if it
-    // doesn't, it's a drop-through to standard error handling). The main
+    // This tests the send method end-to-end _minus_ the part that actually
+    // calls the /actions/send_email - we just assume it returns healthy (and if
+    // it doesn't, it's a drop-through to standard error handling). The main
     // reason for this is that we can't mock the email provider call on the
     // API side :( We rely on the actual API tests for validating the
     // API functionality.

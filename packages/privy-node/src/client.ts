@@ -571,9 +571,9 @@ export class PrivyClient extends PrivyConfig {
    * Sends an email to a given user ID with the subject and HTML specified.
    *
    * Optionally, if you would like to incorporate user data into the email, you
-   * may do so using {@link https://handlebarsjs.com/ Handlebars}. To do so,
-   * embed the field IDs you specify into the HTML content and update the fields
-   * param to include those fields.
+   * may do so using the {@link https://handlebarsjs.com/ Handlebars} templating
+   * format. Embed the field IDs corresponding to desired values into the HTML
+   * content and update the fields param to include those fields.
    *
    * For example, if you include `fields=["username"]`, you can then use this in
    * your htmlContent like so: `htmlContent="Hello {{username}}, ..."`
@@ -583,9 +583,12 @@ export class PrivyClient extends PrivyConfig {
    * @param htmlContent HTML content to send. If any handlebars content is included,
    *     it will be replaced using the fields provided before sending.
    * @param fields Single field ID or an array of field IDs to dynamically
-   *     include in the email using Handlebars. Images are not yet supported.
+   *     include in the email using Handlebars. Files, such as images, are not
+   *     yet supported.
    *
-   * @precondition a fieldId of "email" which contains a valid destination email
+   * @precondition In order for `sendEmail` to work, a valid destination email
+   *     must already be stored for the input user `userId` in a field with the
+   *     field ID `email`.
    */
   async sendEmail(
     userId: string,
