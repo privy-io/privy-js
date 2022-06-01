@@ -1,6 +1,7 @@
 import axios from 'axios';
 import {fetchAPIKeys} from './api_keys';
 import {PrivyClient, FieldInstance, BatchOptions} from '../../src';
+import uniqueId from '../unique_id';
 
 const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
@@ -85,44 +86,43 @@ describe('Privy client', () => {
     expect(downloadedFile!.contentType).toEqual('text/plain');
   });
 
-  // it('batch get / put api', async () => {
-  //   const user0 = `0x${Date.now()}`;
-  //   let username: FieldInstance | null, email: FieldInstance | null;
-  //   [username, email] = await client.put(user0, [
-  //     {field: 'username', value: 'tobias'},
-  //     {field: 'email', value: 'tobias@funke.com'},
-  //   ]);
-  //   const user1 = `0x${Date.now()}`;
-  //   [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
-  //   const user2 = `0x${Date.now()}`;
-  //   [username] = await client.put(user2, [{field: 'username', value: 'gob'}]);
+  it('batch get / put api', async () => {
+    const user0 = uniqueId();
+    let username: FieldInstance | null, email: FieldInstance | null;
+    [username, email] = await client.put(user0, [
+      {field: 'username', value: 'tobias'},
+      {field: 'email', value: 'tobias@funke.com'},
+    ]);
+    const user1 = uniqueId();
+    [username] = await client.put(user1, [{field: 'username', value: 'michael'}]);
+    const user2 = uniqueId();
+    [username] = await client.put(user2, [{field: 'username', value: 'gob'}]);
 
-  //   // Test missing cursor behavior.
-  //   let options: BatchOptions = {limit: 1};
-  //   let batchData = await client.getBatch(['username', 'email'], {
-  //     limit: 1,
-  //   });
-  //   expect(batchData.next_cursor_id).toEqual(user1);
-  //   expect(batchData.users.length).toEqual(1);
+    // Test missing cursor behavior.
+    let batchData = await client.getBatch(['username', 'email'], {
+      limit: 1,
+    });
+    expect(batchData.next_cursor_id).toEqual(user1);
+    expect(batchData.users.length).toEqual(1);
 
-  //   // Test data returned when cursor is provided.
-  //   batchData = await client.getBatch(['username', 'email'], {
-  //     cursor: user1,
-  //     limit: 2,
-  //   });
-  //   let users = batchData.users;
-  //   expect(users.length).toEqual(2);
-  //   // Check user0's data.
-  //   expect(users[0].data.length).toEqual(2);
-  //   username = users[0].data[0] as FieldInstance;
-  //   expect(username.text()).toEqual('michael');
-  //   email = users[0].data[1] as FieldInstance;
-  //   expect(email).toEqual(null);
-  //   // Check user1's data.
-  //   expect(users[1].data.length).toEqual(2);
-  //   username = users[1].data[0] as FieldInstance;
-  //   expect(username.text()).toEqual('tobias');
-  //   email = users[1].data[1] as FieldInstance;
-  //   expect(email.text()).toEqual('tobias@funke.com');
-  // });
+    // Test data returned when cursor is provided.
+    batchData = await client.getBatch(['username', 'email'], {
+      cursor: user1,
+      limit: 2,
+    });
+    let users = batchData.users;
+    expect(users.length).toEqual(2);
+    // Check user0's data.
+    expect(users[0].data.length).toEqual(2);
+    username = users[0].data[0] as FieldInstance;
+    expect(username.text()).toEqual('michael');
+    email = users[0].data[1] as FieldInstance;
+    expect(email).toEqual(null);
+    // Check user1's data.
+    expect(users[1].data.length).toEqual(2);
+    username = users[1].data[0] as FieldInstance;
+    expect(username.text()).toEqual('tobias');
+    email = users[1].data[1] as FieldInstance;
+    expect(email.text()).toEqual('tobias@funke.com');
+  });
 });
