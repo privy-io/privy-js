@@ -9,7 +9,6 @@ https://www.privy.io
 ![build](https://github.com/privy-io/privy-js/actions/workflows/tests.yml/badge.svg)
 [![npm version](https://badge.fury.io/js/@privy-io%2Fprivy-browser.svg)](https://www.npmjs.com/package/@privy-io/privy-browser)
 
-
 ## Documentation
 
 See https://docs.privy.io/.
@@ -29,9 +28,7 @@ import axios from 'axios';
 import {PrivyClient, CustomSession} from '@privy-io/privy-browser';
 
 const session = new CustomSession(async function authenticate() {
-  const response = await axios.post<{token: string}>(
-    `/your/custom/endpoint`,
-  );
+  const response = await axios.post<{token: string}>(`/your/custom/endpoint`);
   return response.data.token;
 });
 
@@ -43,16 +40,16 @@ const client = new PrivyClient({
 Using the Privy client, read and write some data for a given user.
 
 ```typescript
-const userId = "0x123";
+const userId = '0x123';
 
 // To write...
 const [email, ssn] = await client.put(userId, [
-  {field: "email", value: "foo@example.com"},
-  {field: "ssn", value: "123-45-6789"},
+  {field: 'email', value: 'foo@example.com'},
+  {field: 'ssn', value: '123-45-6789'},
 ]);
 
 // To read...
-const [email, ssn] = await client.get(userId, ["email", "ssn"]);
+const [email, ssn] = await client.get(userId, ['email', 'ssn']);
 console.log(email.text());
 console.log(ssn.text());
 ```
@@ -71,7 +68,11 @@ npm test
 
 ### Integration
 
-Some of the tests are currently expected to be run against a running instance of the API. To successfully run those, you will need to create a `.env` file in the root of `./privy-browser` with the following fields:
+Some of the tests are currently expected to be run against a running instance of the API.
+
+Reset data in the API instance before running tests, e.g. by recreating and seeding the test database.
+
+To successfully run tests, you will need to create a `.env` file in the root of `./privy-browser` with the following fields:
 
 ```
 PRIVY_API_URL=<privy api url>
