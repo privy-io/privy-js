@@ -25,6 +25,7 @@ import encoding, {wrapAsBuffer} from './encoding';
 import {md5} from './hash';
 import {PrivyConfig, SigningFn} from './config';
 import crypto from 'crypto';
+import Handlebars from 'handlebars';
 
 // At the moment, there is only one version of
 // Privy's crypto system, so this can be hardcoded.
@@ -564,5 +565,69 @@ export class PrivyClient extends PrivyConfig {
     const path = dataKeyPath(userId);
     const response = await this.kms.post<DataKeyResponse>(path, {data: keys});
     return response.data.data.map(({key}) => encoding.toBuffer(key, 'base64'));
+  }
+
+  /**
+   * Sends an email to a given user ID with the subject and HTML specified.
+   *
+   * Optionally, if you would like to incorporate user data into the email, you
+   * may do so using the {@link https://handlebarsjs.com/ Handlebars} templating
+   * format. Embed the field IDs corresponding to desired values into the HTML
+   * content and update the fields param to include those fields.
+   *
+   * For example, if you include `fields=["username"]`, you can then use this in
+   * your htmlContent like so: `htmlContent="Hello {{username}}, ..."`
+   *
+   * @param userId User ID
+   * @param subject Subject of the email
+   * @param htmlContent HTML content to send. If any handlebars content is included,
+   *     it will be replaced using the fields provided before sending.
+   * @param fields Single field ID or an array of field IDs to dynamically
+   *     include in the email using Handlebars. Files, such as images, are not
+   *     yet supported.
+   *
+   * @precondition In order for `sendEmail` to work, a valid destination email
+   *     must already be stored for the input user `userId` in a field with the
+   *     field ID `email`.
+   */
+  async sendEmail(
+    userId: string,
+    subject: string,
+    htmlContent: string,
+    fields?: string | string[],
+  ): Promise<void> {
+    try {
+      // Fetch requested fields
+      const fieldIds = ['email', ...wrap(fields || []).filter((f) => f)];
+      const path = userDataPath(userId, fieldIds);
+
+      const response = await this.api.get<EncryptedUserDataResponse>(path);
+      const decrypted = await this.decrypt(userId, response.data.data);
+
+      const indexedUserDataInput: {[fieldId: string]: string} = {};
+      for (const item of decrypted) {
+        if (!item) continue;
+        indexedUserDataInput[item.field_id] = item.text();
+      }
+
+      // Apply the fields to the HTML using Handlebars. If the content has no
+      // Handlebars, this is a no-op.
+      const template = Handlebars.compile(htmlContent);
+      const templatedContent = template(indexedUserDataInput);
+
+      // Make the API call to send
+      const sendPath = `/actions/send_email`;
+      await this.api.post<Record<string, unknown>>(
+        sendPath,
+        {
+          to_email: indexedUserDataInput['email'],
+          subject: subject,
+          html_content: templatedContent,
+        },
+        undefined,
+      );
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
   }
 }

@@ -58,6 +58,10 @@ describe('Privy client', () => {
     });
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('get / put api', async () => {
     let username: FieldInstance | null, email: FieldInstance | null;
 
@@ -109,5 +113,42 @@ describe('Privy client', () => {
     const downloadedFile = await client.getFile(userID, 'avatar');
     expect(downloadedFile!.buffer().toString()).toEqual('file_data');
     expect(downloadedFile!.contentType).toEqual('text/plain');
+  });
+
+  it('sends email with replacement', async () => {
+    // This tests the send method end-to-end _minus_ the part that actually
+    // calls the /actions/send_email - we just assume it returns healthy (and if
+    // it doesn't, it's a drop-through to standard error handling). The main
+    // reason for this is that we can't mock the email provider call on the
+    // API side :( We rely on the actual API tests for validating the
+    // API functionality.
+
+    // Setup
+    await client.put(userID, [
+      {field: 'username', value: 'tobias'},
+      {field: 'email', value: 'tobias@funke.com'},
+    ]);
+
+    // We need the first mockImplementationOnce(axiosPost), because we make a\
+    // post call to the KMS endpoint and want that to actually run. After
+    // that, the next post call is to /actions/send_email, which we mock.
+    const axiosPost = axios.post;
+    const mockedPost = async () => Promise.resolve({data: 'Success: email sent'});
+    jest.spyOn(axios, 'post').mockImplementationOnce(axiosPost).mockImplementation(mockedPost);
+
+    // Execute
+    await client.sendEmail(userID, 'Test Subject', 'Hello{{#if username}} {{username}}{{/if}}!', [
+      'username',
+    ]);
+
+    expect(axios.post).toHaveBeenLastCalledWith(
+      '/actions/send_email',
+      {
+        to_email: 'tobias@funke.com',
+        subject: 'Test Subject',
+        html_content: 'Hello tobias!',
+      },
+      expect.any(Object),
+    );
   });
 });
