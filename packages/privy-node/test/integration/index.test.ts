@@ -31,60 +31,60 @@ describe('Privy client', () => {
     });
   });
 
-  // it('get / put api', async () => {
-  //   let username: FieldInstance | null, email: FieldInstance | null;
+  it('get / put api', async () => {
+    let username: FieldInstance | null, email: FieldInstance | null;
 
-  //   // TODO(dave): Checking for initial nulls makes this test not re-runnable.
+    // TODO(dave): Checking for initial nulls makes this test not re-runnable.
 
-  //   // email = await client.get(userID, 'email');
-  //   // expect(email).toEqual(null);
+    // email = await client.get(userID, 'email');
+    // expect(email).toEqual(null);
 
-  //   // [username, email] = await client.get(userID, ['username', 'email']);
-  //   // expect(username).toEqual(null);
-  //   // expect(email).toEqual(null);
+    // [username, email] = await client.get(userID, ['username', 'email']);
+    // expect(username).toEqual(null);
+    // expect(email).toEqual(null);
 
-  //   [username, email] = await client.put(userID, [
-  //     {field: 'username', value: 'tobias'},
-  //     {field: 'email', value: 'tobias@funke.com'},
-  //   ]);
+    [username, email] = await client.put(userID, [
+      {field: 'username', value: 'tobias'},
+      {field: 'email', value: 'tobias@funke.com'},
+    ]);
 
-  //   expect(username.integrity_hash).toEqual(expect.any(String));
-  //   expect(username.text()).toEqual('tobias');
-  //   expect(email.integrity_hash).toEqual(expect.any(String));
-  //   expect(email.text()).toEqual('tobias@funke.com');
-  //   expect(username.integrity_hash !== email.integrity_hash).toEqual(true);
+    expect(username.integrity_hash).toEqual(expect.any(String));
+    expect(username.text()).toEqual('tobias');
+    expect(email.integrity_hash).toEqual(expect.any(String));
+    expect(email.text()).toEqual('tobias@funke.com');
+    expect(username.integrity_hash !== email.integrity_hash).toEqual(true);
 
-  //   username = (await client.get(userID, 'username')) as FieldInstance;
-  //   expect(username.text()).toEqual('tobias');
+    username = (await client.get(userID, 'username')) as FieldInstance;
+    expect(username.text()).toEqual('tobias');
 
-  //   username = await client.put(userID, 'username', 'tobiasfunke');
-  //   expect(username.integrity_hash).toEqual(expect.any(String));
-  //   expect(username.text()).toEqual('tobiasfunke');
+    username = await client.put(userID, 'username', 'tobiasfunke');
+    expect(username.integrity_hash).toEqual(expect.any(String));
+    expect(username.text()).toEqual('tobiasfunke');
 
-  //   username = (await client.get(userID, 'username')) as FieldInstance;
-  //   expect(username.text()).toEqual('tobiasfunke');
+    username = (await client.get(userID, 'username')) as FieldInstance;
+    expect(username.text()).toEqual('tobiasfunke');
 
-  //   [username, email] = (await client.get(userID, ['username', 'email'])) as FieldInstance[];
-  //   expect(username.text()).toEqual('tobiasfunke');
-  //   expect(email.text()).toEqual('tobias@funke.com');
+    [username, email] = (await client.get(userID, ['username', 'email'])) as FieldInstance[];
+    expect(username.text()).toEqual('tobiasfunke');
+    expect(email.text()).toEqual('tobias@funke.com');
 
-  //   const integrityHash = email.integrity_hash;
+    const integrityHash = email.integrity_hash;
 
-  //   email = (await client.getByIntegrityHash(integrityHash)) as FieldInstance;
-  //   expect(email.text()).toEqual('tobias@funke.com');
-  //   expect(email.integrity_hash).toEqual(integrityHash);
-  // });
+    email = (await client.getByIntegrityHash(integrityHash)) as FieldInstance;
+    expect(email.text()).toEqual('tobias@funke.com');
+    expect(email.integrity_hash).toEqual(integrityHash);
+  });
 
-  // it('putFile / getFile api', async () => {
-  //   const file = await client.putFile(userID, 'avatar', Buffer.from('file_data'), 'text/plain');
-  //   expect(file.contentType).toEqual('text/plain');
-  //   expect(file.field_id).toEqual('avatar');
-  //   expect(file.user_id).toEqual(userID);
+  it('putFile / getFile api', async () => {
+    const file = await client.putFile(userID, 'avatar', Buffer.from('file_data'), 'text/plain');
+    expect(file.contentType).toEqual('text/plain');
+    expect(file.field_id).toEqual('avatar');
+    expect(file.user_id).toEqual(userID);
 
-  //   const downloadedFile = await client.getFile(userID, 'avatar');
-  //   expect(downloadedFile!.buffer().toString()).toEqual('file_data');
-  //   expect(downloadedFile!.contentType).toEqual('text/plain');
-  // });
+    const downloadedFile = await client.getFile(userID, 'avatar');
+    expect(downloadedFile!.buffer().toString()).toEqual('file_data');
+    expect(downloadedFile!.contentType).toEqual('text/plain');
+  });
 
   it('batch get / put api', async () => {
     // SETUP: Create 2 fields, initially with admin default access group for both.
@@ -111,15 +111,15 @@ describe('Privy client', () => {
     });
 
     const user0 = `user-${id}-0`;
-    let username: FieldInstance | null, email: FieldInstance | null;
-    [username, email] = await client.put(user0, [
+    let adminFieldVal: FieldInstance | null, selfFieldVal: FieldInstance | null;
+    [adminFieldVal, selfFieldVal] = await client.put(user0, [
       {field: adminDefaultField, value: 'admin-val-0'},
       {field: selfDefaultField, value: 'self-val-0'},
     ]);
     const user1 = `user-${id}-1`;
-    [username] = await client.put(user1, [{field: selfDefaultField, value: 'self-val-1'}]);
+    [selfFieldVal] = await client.put(user1, [{field: selfDefaultField, value: 'self-val-1'}]);
     const user2 = `user-${id}-2`;
-    [username] = await client.put(user2, [{field: adminDefaultField, value: 'admin-val-2'}]);
+    [adminFieldVal] = await client.put(user2, [{field: adminDefaultField, value: 'admin-val-2'}]);
 
     // Now change the default access group for the self field.
     field = await client.updateField(selfDefaultField, {default_access_group: 'self'});
