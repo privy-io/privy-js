@@ -89,60 +89,56 @@ describe('Privy client', () => {
   it('batch get / put api', async () => {
     // SETUP: Create 2 fields, initially with admin default access group for both.
     const id = uniqueId();
-    const adminField = `field-${id}-2`;
+    const adminDefaultField = `field-${id}-admin`;
     // This field will later have `self` set as the default access group.
-    const selfField = `field-${id}-1`;
+    const selfDefaultField = `field-${id}-self`;
 
     let field;
-    field = await client.createField({name: selfField, default_access_group: 'admin'});
+    field = await client.createField({name: selfDefaultField, default_access_group: 'admin'});
     expect(field).toMatchObject({
-      field_id: selfField,
-      name: selfField,
+      field_id: selfDefaultField,
+      name: selfDefaultField,
       default_access_group: 'admin',
       updated_at: expect.any(Number),
     });
 
-    field = await client.createField({name: adminField, default_access_group: 'admin'});
+    field = await client.createField({name: adminDefaultField, default_access_group: 'admin'});
     expect(field).toMatchObject({
-      field_id: adminField,
-      name: adminField,
+      field_id: adminDefaultField,
+      name: adminDefaultField,
       default_access_group: 'admin',
       updated_at: expect.any(Number),
     });
 
-    const user0 = uniqueId();
+    const user0 = `user-${id}-0`;
     let username: FieldInstance | null, email: FieldInstance | null;
     [username, email] = await client.put(user0, [
-      {field: adminField, value: 'admin-val-0'},
-      {field: selfField, value: 'self-val-0'},
+      {field: adminDefaultField, value: 'admin-val-0'},
+      {field: selfDefaultField, value: 'self-val-0'},
     ]);
-    const user1 = uniqueId();
-    [username] = await client.put(user1, [{field: adminField, value: 'admin-val-1'}]);
-    const user2 = uniqueId();
-    [username] = await client.put(user2, [{field: selfField, value: 'self-val-2'}]);
-    console.log('user0:', user0);
-    console.log('user1:', user0);
-    console.log('user2:', user0);
+    const user1 = `user-${id}-1`;
+    [username] = await client.put(user1, [{field: selfDefaultField, value: 'self-val-1'}]);
+    const user2 = `user-${id}-2`;
+    [username] = await client.put(user2, [{field: adminDefaultField, value: 'admin-val-2'}]);
 
     // Now change the default access group for the self field.
-    field = await client.updateField(selfField, {default_access_group: 'self'});
+    field = await client.updateField(selfDefaultField, {default_access_group: 'self'});
     expect(field).toMatchObject({
-      field_id: selfField,
-      name: selfField,
+      field_id: selfDefaultField,
+      name: selfDefaultField,
       default_access_group: 'self',
       updated_at: expect.any(Number),
     });
 
-    field = await client.updateField(selfField, {default_access_group: 'self'});
+    field = await client.updateField(selfDefaultField, {default_access_group: 'self'});
     expect(field).toMatchObject({
-      field_id: selfField,
-      name: selfField,
+      field_id: selfDefaultField,
+      name: selfDefaultField,
       default_access_group: 'self',
       updated_at: expect.any(Number),
     });
 
-    // Update user0's selfField's access group to a custom access group with read admin perms.
-    // CREATE the access group
+    // Update user0's selfDefaultField's access group to a custom access group with read admin perms.
     const testAccessGroupId = `test-access-group-${id}`;
     const accessGroup = await client.createAccessGroup({
       name: testAccessGroupId,
@@ -157,37 +153,37 @@ describe('Privy client', () => {
       is_default: false,
     });
     let permissions = await client.updateUserPermissions(user0, [
-      {field_id: selfField, access_group: testAccessGroupId},
+      {field_id: selfDefaultField, access_group: testAccessGroupId},
     ]);
     expect(permissions).toEqual(
-      expect.arrayContaining([{field_id: selfField, access_group: testAccessGroupId}]),
+      expect.arrayContaining([{field_id: selfDefaultField, access_group: testAccessGroupId}]),
     );
 
     // TEST: Check missing cursor returns oldest user.
-    // let batchData = await client.getBatch([adminField, selfField], {
-    //   limit: 1,
-    // });
-    // expect(batchData.next_cursor_id).toEqual(user1);
-    // expect(batchData.users.length).toEqual(1);
+    let batchData = await client.getBatch([adminDefaultField, selfDefaultField], {
+      limit: 1,
+    });
+    expect(batchData.next_cursor_id).toEqual(user1);
+    expect(batchData.users.length).toEqual(1);
 
-    //   // Test data returned when cursor is provided.
-    //   batchData = await client.getBatch(['username', 'email'], {
-    //     cursor: user1,
-    //     limit: 2,
-    //   });
-    //   let users = batchData.users;
-    //   expect(users.length).toEqual(2);
-    //   // Check user0's data.
-    //   expect(users[0].data.length).toEqual(2);
-    //   username = users[0].data[0] as FieldInstance;
-    //   expect(username.text()).toEqual('michael');
-    //   email = users[0].data[1] as FieldInstance;
-    //   expect(email).toEqual(null);
-    //   // Check user1's data.
-    //   expect(users[1].data.length).toEqual(2);
-    //   username = users[1].data[0] as FieldInstance;
-    //   expect(username.text()).toEqual('tobias');
-    //   email = users[1].data[1] as FieldInstance;
-    //   expect(email.text()).toEqual('tobias@funke.com');
+    // Test data returned when cursor is provided.
+    batchData = await client.getBatch([adminDefaultField, selfDefaultField], {
+      cursor: user1,
+      limit: 2,
+    });
+    let users = batchData.users;
+    expect(users.length).toEqual(2);
+    // Check user1's data.
+    expect(users[0].data.length).toEqual(2);
+    let adminDefaultFieldVal = users[0].data[0] as FieldInstance;
+    expect(adminDefaultFieldVal).toEqual(null);
+    let selfDefaultFieldVal = users[0].data[1] as FieldInstance;
+    expect(selfDefaultFieldVal).toEqual(null);
+    // Check user0's data.
+    expect(users[1].data.length).toEqual(2);
+    adminDefaultFieldVal = users[1].data[0] as FieldInstance;
+    expect(adminDefaultFieldVal.text()).toEqual('admin-val-0');
+    selfDefaultFieldVal = users[1].data[1] as FieldInstance;
+    expect(selfDefaultFieldVal.text()).toEqual('self-val-0');
   });
 });
