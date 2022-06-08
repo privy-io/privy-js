@@ -1,17 +1,31 @@
 import {PrivyClient} from '../../src';
+import {fetchAPIKeys} from './api_keys';
 import uniqueId from '../unique_id';
+
+const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
+const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
+const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
+
+// If these are omitted, a new API key pair will be generated using the default dev console login.
+let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
+let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
 
 describe('PrivyNode', () => {
   let privyNode: PrivyClient;
 
   beforeEach(async () => {
+    if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+      const keyPair = await fetchAPIKeys(PRIVY_CONSOLE);
+      PRIVY_API_PUBLIC_KEY = keyPair.key;
+      PRIVY_API_SECRET_KEY = keyPair.secret;
+    }
     // Create a config API instance.
     privyNode = new PrivyClient(
-      process.env.PRIVY_API_PUBLIC_KEY!,
-      process.env.PRIVY_API_SECRET_KEY!,
+      PRIVY_API_PUBLIC_KEY!,
+      PRIVY_API_SECRET_KEY!,
       {
-        apiURL: process.env.PRIVY_API_URL!,
-        kmsURL: process.env.PRIVY_KMS_URL!,
+        apiURL: PRIVY_API_URL!,
+        kmsURL: PRIVY_KMS_URL!,
         timeout: 0,
       },
     );

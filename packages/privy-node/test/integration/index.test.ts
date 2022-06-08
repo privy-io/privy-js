@@ -1,5 +1,7 @@
 import axios from 'axios';
-import {PrivyClient, FieldInstance} from '../../src';
+import {fetchAPIKeys} from './api_keys';
+import {PrivyClient, FieldInstance, BatchOptions} from '../../src';
+import uniqueId from '../unique_id';
 
 const PRIVY_API_URL = process.env.PRIVY_API_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
@@ -8,42 +10,13 @@ const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/consol
 // If these are omitted, a new API key pair will be generated using the default dev console login.
 let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
 let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
-// Convenience function to generate a new API key pair using default dev credentials.
-const fetchAPIKeys = async () => {
-  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
-    const {
-      data: {token},
-    } = await axios.post(
-      '/token',
-      {},
-      {
-        baseURL: PRIVY_CONSOLE,
-        auth: {
-          username: 'hi@acme.co',
-          password: 'acme-password1',
-        },
-      },
-    );
-    const {
-      data: {key, secret},
-    } = await axios.post(
-      '/accounts/api_keys',
-      {},
-      {
-        baseURL: PRIVY_CONSOLE,
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-    );
-    console.log('Generated API key pair:', key, ',', secret);
-    PRIVY_API_PUBLIC_KEY = key;
-    PRIVY_API_SECRET_KEY = secret;
-  }
-};
 
 beforeAll(async () => {
-  await fetchAPIKeys();
+  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+    const keyPair = await fetchAPIKeys(PRIVY_CONSOLE);
+    PRIVY_API_PUBLIC_KEY = keyPair.key;
+    PRIVY_API_SECRET_KEY = keyPair.secret;
+  }
 });
 
 describe('Privy client', () => {
@@ -65,6 +38,7 @@ describe('Privy client', () => {
   it('get / put api', async () => {
     let username: FieldInstance | null, email: FieldInstance | null;
 
+    // TODO(#914): Handle null checks such that these tests can be re-run without failing.
     email = await client.get(userID, 'email');
     expect(email).toEqual(null);
 
@@ -113,6 +87,107 @@ describe('Privy client', () => {
     const downloadedFile = await client.getFile(userID, 'avatar');
     expect(downloadedFile!.buffer().toString()).toEqual('file_data');
     expect(downloadedFile!.contentType).toEqual('text/plain');
+  });
+
+  it('batch get / put api', async () => {
+    // SETUP: Create 2 fields, initially with admin default access group for both.
+    const id = uniqueId();
+    const adminDefaultField = `field-${id}-admin`;
+    // This field will later have `self` set as the default access group.
+    const selfDefaultField = `field-${id}-self`;
+
+    let field;
+    field = await client.createField({name: selfDefaultField, default_access_group: 'admin'});
+    expect(field).toMatchObject({
+      field_id: selfDefaultField,
+      name: selfDefaultField,
+      default_access_group: 'admin',
+      updated_at: expect.any(Number),
+    });
+
+    field = await client.createField({name: adminDefaultField, default_access_group: 'admin'});
+    expect(field).toMatchObject({
+      field_id: adminDefaultField,
+      name: adminDefaultField,
+      default_access_group: 'admin',
+      updated_at: expect.any(Number),
+    });
+
+    const user0 = `user-${id}-0`;
+    let adminFieldVal: FieldInstance | null, selfFieldVal: FieldInstance | null;
+    [adminFieldVal, selfFieldVal] = await client.put(user0, [
+      {field: adminDefaultField, value: 'admin-val-0'},
+      {field: selfDefaultField, value: 'self-val-0'},
+    ]);
+    const user1 = `user-${id}-1`;
+    [selfFieldVal] = await client.put(user1, [{field: selfDefaultField, value: 'self-val-1'}]);
+    const user2 = `user-${id}-2`;
+    [adminFieldVal] = await client.put(user2, [{field: adminDefaultField, value: 'admin-val-2'}]);
+
+    // Now change the default access group for the self field.
+    field = await client.updateField(selfDefaultField, {default_access_group: 'self'});
+    expect(field).toMatchObject({
+      field_id: selfDefaultField,
+      name: selfDefaultField,
+      default_access_group: 'self',
+      updated_at: expect.any(Number),
+    });
+
+    field = await client.updateField(selfDefaultField, {default_access_group: 'self'});
+    expect(field).toMatchObject({
+      field_id: selfDefaultField,
+      name: selfDefaultField,
+      default_access_group: 'self',
+      updated_at: expect.any(Number),
+    });
+
+    // Update user0's selfDefaultField's access group to a custom access group with read admin perms.
+    const testAccessGroupId = `test-access-group-${id}`;
+    const accessGroup = await client.createAccessGroup({
+      name: testAccessGroupId,
+      read_roles: ['admin'],
+      write_roles: ['self'],
+    });
+    expect(accessGroup).toMatchObject({
+      access_group_id: testAccessGroupId,
+      name: testAccessGroupId,
+      read_roles: ['admin'],
+      write_roles: ['self'],
+      is_default: false,
+    });
+    let permissions = await client.updateUserPermissions(user0, [
+      {field_id: selfDefaultField, access_group: testAccessGroupId},
+    ]);
+    expect(permissions).toEqual(
+      expect.arrayContaining([{field_id: selfDefaultField, access_group: testAccessGroupId}]),
+    );
+
+    // TEST: Check missing cursor returns oldest user.
+    let batchData = await client.getBatch([adminDefaultField, selfDefaultField], {
+      limit: 1,
+    });
+    expect(batchData.next_cursor_id).toEqual(user1);
+    expect(batchData.users.length).toEqual(1);
+
+    // Test data returned when cursor is provided.
+    batchData = await client.getBatch([adminDefaultField, selfDefaultField], {
+      cursor: user1,
+      limit: 2,
+    });
+    let users = batchData.users;
+    expect(users.length).toEqual(2);
+    // Check user1's data.
+    expect(users[0].data.length).toEqual(2);
+    let adminDefaultFieldVal = users[0].data[0] as FieldInstance;
+    expect(adminDefaultFieldVal).toEqual(null);
+    let selfDefaultFieldVal = users[0].data[1] as FieldInstance;
+    expect(selfDefaultFieldVal).toEqual(null);
+    // Check user0's data.
+    expect(users[1].data.length).toEqual(2);
+    adminDefaultFieldVal = users[1].data[0] as FieldInstance;
+    expect(adminDefaultFieldVal.text()).toEqual('admin-val-0');
+    selfDefaultFieldVal = users[1].data[1] as FieldInstance;
+    expect(selfDefaultFieldVal.text()).toEqual('self-val-0');
   });
 
   it('sends email with replacement', async () => {
