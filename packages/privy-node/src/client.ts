@@ -761,8 +761,9 @@ export class PrivyClient extends PrivyConfig {
         },
         undefined,
       );
-    } catch (error) {
-      throw formatPrivyError(error);
+    } catch (error: any) {
+      const errorType = error?.type || error?.statusText || error?.status || 'Unknown error';
+      throw new PrivyClientError(`${errorType}: email send failed for user ${userId}`);
     }
   }
 }
