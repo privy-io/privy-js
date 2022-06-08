@@ -1,6 +1,6 @@
 {
   "name": "@privy-io/privy-node",
-  "version": "0.0.1",
+  "version": "0.0.1.beta",
   "description": "Node server-side client for the Privy API",
   "keywords": [
     "privy",
@@ -35,7 +35,7 @@
     "test-integration": "jest --testMatch \"**/test/integration/**/*.test.ts\""
   },
   "dependencies": {
-    "@privy-io/crypto": "0.0.3",
+    "@privy-io/crypto": "0.0.4",
     "axios": "^0.26.1",
     "dotenv": "^16.0.0",
     "form-data": "^4.0.0",
