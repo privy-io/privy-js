@@ -38,14 +38,13 @@ describe('Privy client', () => {
   it('get / put api', async () => {
     let username: FieldInstance | null, email: FieldInstance | null;
 
-    // TODO(dave): Checking for initial nulls makes this test not re-runnable.
+    // TODO(#914): Handle null checks such that these tests can be re-run without failing.
+    email = await client.get(userID, 'email');
+    expect(email).toEqual(null);
 
-    // email = await client.get(userID, 'email');
-    // expect(email).toEqual(null);
-
-    // [username, email] = await client.get(userID, ['username', 'email']);
-    // expect(username).toEqual(null);
-    // expect(email).toEqual(null);
+    [username, email] = await client.get(userID, ['username', 'email']);
+    expect(username).toEqual(null);
+    expect(email).toEqual(null);
 
     [username, email] = await client.put(userID, [
       {field: 'username', value: 'tobias'},
