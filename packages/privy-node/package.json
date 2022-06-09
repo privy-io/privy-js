@@ -30,7 +30,6 @@
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "format": "prettier --write 'src/**/*.ts'",
     "prepublishOnly": "npm run clean && npm run build",
     "test": "jest --testMatch \"**/test/unit/**/*.test.ts\"",
     "test-integration": "jest --testMatch \"**/test/integration/**/*.test.ts\""
