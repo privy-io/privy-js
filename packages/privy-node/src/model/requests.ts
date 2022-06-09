@@ -3,9 +3,9 @@ export interface AccessTokenRequest {
   roles: string[];
 }
 
-/** 
-  * The required attributes of a field
-  */
+/**
+ * The required attributes of a field
+ */
 export interface CreateFieldRequest {
   /**
    * Unique alphanumeric identifier for the field.
@@ -37,23 +37,23 @@ export interface UpdateRoleRequest {
   description?: string;
 }
 
-/** 
+/**
  * The required attributes of an access group
  */
 export interface CreateAccessGroupRequest {
-  /** 
+  /**
    * The access group name of which the access group id is derived.
    */
   name: string;
-  /** 
+  /**
    * Description of the access group's purpose.
    */
   description?: string;
-  /** 
+  /**
    * List of role ids that have READ permission in this group.
    */
   read_roles?: string[];
-  /** 
+  /**
    * List of role ids that have WRITE permission in this group.
    */
   write_roles?: string[];

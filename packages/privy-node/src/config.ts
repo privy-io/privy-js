@@ -605,4 +605,3 @@ export class PrivyConfig {
     }
   }
 }
-
