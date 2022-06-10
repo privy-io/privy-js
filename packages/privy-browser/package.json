@@ -1,6 +1,6 @@
 {
   "name": "@privy-io/privy-browser",
-  "version": "0.0.1.beta",
+  "version": "0.0.1-beta.2",
   "description": "Browser client for the Privy API",
   "keywords": [
     "privy",
