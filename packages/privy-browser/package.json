@@ -1,6 +1,6 @@
 {
   "name": "@privy-io/privy-browser",
-  "version": "0.0.1",
+  "version": "0.0.1-beta.2",
   "description": "Browser client for the Privy API",
   "keywords": [
     "privy",
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@ethersproject/address": "^5.6.0",
-    "@privy-io/crypto": "0.0.3",
+    "@privy-io/crypto": "0.0.4",
     "axios": "^0.26.1",
     "base64-js": "^1.5.1",
     "dotenv": "^16.0.0",
