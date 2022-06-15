@@ -33,7 +33,7 @@ export class PublicSession extends CustomSession {
 
     async function authenticate() {
       try {
-        const response = await axios.post<{token: string}>('/auth/public', {}, axiosOptions);
+        const response = await axios.post<{token: string}>('/auth/public/token', {}, axiosOptions);
         return response.data.token;
       } catch (error) {
         throw wrapApiError(error);
