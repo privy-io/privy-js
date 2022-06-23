@@ -1,6 +1,6 @@
 {
   "name": "@privy-io/privy-node",
-  "version": "0.0.1-beta.4",
+  "version": "0.0.1",
   "description": "Node server-side client for the Privy API",
   "keywords": [
     "privy",
