@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+const PRIVY_USERNAME = process.env.PRIVY_USERNAME || '';
+const PRIVY_PASSWORD = process.env.PRIVY_PASSWORD || '';
+
 export async function fetchAPIKeys(consoleUrl: string) {
   const {
     data: {token},
@@ -9,8 +12,8 @@ export async function fetchAPIKeys(consoleUrl: string) {
     {
       baseURL: consoleUrl,
       auth: {
-        username: 'hi@acme.co',
-        password: 'acme-password1',
+        username: PRIVY_USERNAME,
+        password: PRIVY_PASSWORD,
       },
     },
   );

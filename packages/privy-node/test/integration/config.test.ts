@@ -20,15 +20,11 @@ describe('PrivyNode', () => {
       PRIVY_API_SECRET_KEY = keyPair.secret;
     }
     // Create a config API instance.
-    privyNode = new PrivyClient(
-      PRIVY_API_PUBLIC_KEY!,
-      PRIVY_API_SECRET_KEY!,
-      {
-        apiURL: PRIVY_API_URL!,
-        kmsURL: PRIVY_KMS_URL!,
-        timeout: 0,
-      },
-    );
+    privyNode = new PrivyClient(PRIVY_API_PUBLIC_KEY!, PRIVY_API_SECRET_KEY!, {
+      apiURL: PRIVY_API_URL!,
+      kmsURL: PRIVY_KMS_URL!,
+      timeout: 0,
+    });
   });
 
   describe('fields', () => {
@@ -62,7 +58,7 @@ describe('PrivyNode', () => {
         field_id: fieldId,
         name: name,
         description: 'A field',
-        default_access_group: 'self',
+        default_access_group: 'self-admin',
         updated_at: expect.any(Number),
       });
 
@@ -72,7 +68,7 @@ describe('PrivyNode', () => {
         field_id: fieldId,
         name: name,
         description: 'A field',
-        default_access_group: 'self',
+        default_access_group: 'self-admin',
         updated_at: expect.any(Number),
       });
 
@@ -179,7 +175,8 @@ describe('PrivyNode', () => {
         expect.arrayContaining([
           expect.objectContaining({access_group_id: 'self'}),
           expect.objectContaining({access_group_id: 'admin'}),
-          expect.objectContaining({access_group_id: 'public'}),
+          expect.objectContaining({access_group_id: 'self-admin'}),
+          expect.objectContaining({access_group_id: 'self-write-public-read'}),
         ]),
       );
     });
@@ -264,12 +261,12 @@ describe('PrivyNode', () => {
       permissions = await privyNode.getUserPermissions(userId);
       expect(permissions).toEqual(
         expect.arrayContaining([
-          {field_id: 'name', access_group: 'self'},
-          {field_id: 'username', access_group: 'self'},
-          {field_id: 'email', access_group: 'self'},
-          {field_id: 'bio', access_group: 'self'},
-          {field_id: 'website', access_group: 'self'},
-          {field_id: 'avatar', access_group: 'self'},
+          {field_id: 'name', access_group: 'self-admin'},
+          {field_id: 'username', access_group: 'self-admin'},
+          {field_id: 'email', access_group: 'self-admin'},
+          {field_id: 'bio', access_group: 'self-admin'},
+          {field_id: 'website', access_group: 'self-admin'},
+          {field_id: 'avatar', access_group: 'self-admin'},
         ]),
       );
 
@@ -277,8 +274,8 @@ describe('PrivyNode', () => {
       permissions = await privyNode.getUserPermissions(userId, ['email', 'name']);
       expect(permissions).toEqual(
         expect.arrayContaining([
-          {field_id: 'email', access_group: 'self'},
-          {field_id: 'name', access_group: 'self'},
+          {field_id: 'email', access_group: 'self-admin'},
+          {field_id: 'name', access_group: 'self-admin'},
         ]),
       );
 
