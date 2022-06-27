@@ -1,6 +1,5 @@
 import crypto from 'crypto';
 import {SignJWT} from 'jose';
-import nacl from 'tweetnacl';
 import {AccessTokenClaims} from './model/data';
 
 const secondsSinceEpoch = (): number => {
@@ -40,17 +39,11 @@ export const createAccessTokenClaims = (apiKey: string, requesterId: string): Ac
  * Returns the JWT signing key generated deterministically from the API secret.
  */
 export const jwtKeyFromApiSecret = (apiSecret: string): crypto.KeyObject => {
-  // Decode from URL-safe base64.
-  const apiSecretBuffer = Buffer.from(apiSecret, 'base64');
-
-  // Generate the signing key pair deterministicaly from the secret.
-  const keyPair = nacl.sign.keyPair.fromSeed(apiSecretBuffer);
-
   // Convert raw Ed25519 key buffers into Node crypto KeyObjects.
   const privateKeyJwk = {
     crv: 'Ed25519',
-    d: Buffer.from(keyPair.secretKey.slice(0, 32)).toString('base64'),
-    x: Buffer.from(keyPair.publicKey).toString('base64'),
+    d: apiSecret,
+    x: '',
     kty: 'OKP',
   };
 
