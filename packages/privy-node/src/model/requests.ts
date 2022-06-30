@@ -37,6 +37,11 @@ export interface UpdateRoleRequest {
   description?: string;
 }
 
+export interface UpdateFieldInstanceRequest {
+  field: string;
+  value: string;
+}
+
 /**
  * The required attributes of an access group
  */

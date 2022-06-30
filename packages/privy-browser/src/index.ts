@@ -6,5 +6,6 @@ export {SiweSession} from './sessions/siwe';
 export {PublicSession} from './sessions/public';
 
 export {FieldInstance} from './fieldInstance';
+export {UpdateFieldInstanceRequest} from './types';
 
 export {PrivyError, PrivyApiError, PrivyClientError, PrivySessionError} from './errors';

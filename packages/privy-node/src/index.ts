@@ -7,10 +7,12 @@ export {
   UpdateRoleRequest,
   CreateRoleRequest,
   CreateAccessGroupRequest,
-  UpdateFieldRequest,
   UpdateAccessGroupRequest,
+  UpdateFieldRequest,
+  UpdateFieldInstanceRequest,
   EncryptedAliasRequestValue,
 } from './model/requests';
+
 export {AccessGroup, AccessTokenClaims, Field, Role, UserPermission} from './model/data';
 
 export {FieldInstance, BatchFieldInstances, UserFieldInstances} from './fieldInstance';

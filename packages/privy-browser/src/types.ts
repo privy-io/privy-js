@@ -45,3 +45,8 @@ export interface FileMetadata {
   commitment_id: string;
   created_at: number;
 }
+
+export interface UpdateFieldInstanceRequest {
+  field: string;
+  value: string;
+}
