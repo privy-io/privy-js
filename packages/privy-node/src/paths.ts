@@ -2,7 +2,7 @@ import {BatchOptions} from './types';
 
 export const userDataPath = (userId: string, fields?: string[]) => {
   const path = `/users/${userId}/data`;
-  const query = ['new=t'];
+  const query = [];
 
   if (fields && fields.length > 0) {
     const uriEncodedFields = fields.map(encodeURIComponent);
@@ -52,7 +52,7 @@ export const fileDownloadsPath = (userId: string, fieldId: string, fileId: strin
 };
 
 export const integrityHashPath = (integrityHash: string) => {
-  return `/data/${integrityHash}?new=t`;
+  return `/data/${integrityHash}`;
 };
 
 export const siweNoncePath = () => {
