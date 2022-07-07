@@ -18,6 +18,7 @@ import {
   EncryptedUserDataResponseValue,
   EncryptedUserDataRequestValue,
   FileMetadata,
+  UpdateFieldInstanceRequest,
   WrapperKeyResponse,
 } from './types';
 import {FieldInstance} from './fieldInstance';
@@ -151,10 +152,10 @@ export class PrivyClient {
    * @param fields Array of objects with `field` and `value` keys.
    * @returns Array of {@link FieldInstance}s of the updated fields, in the same order as the input.
    */
-  async put(userId: string, fields: {field: string; value: string}[]): Promise<FieldInstance[]>;
+  async put(userId: string, fields: UpdateFieldInstanceRequest[]): Promise<FieldInstance[]>;
   async put(
     userId: string,
-    fields: string | {field: string; value: string}[],
+    fields: string | UpdateFieldInstanceRequest[],
     value?: string,
   ): Promise<FieldInstance | FieldInstance[]> {
     const data = typeof fields === 'string' ? [{field: fields, value: value!}] : fields;
@@ -348,7 +349,7 @@ export class PrivyClient {
 
   private async encrypt(
     userId: string,
-    data: {field: string; value: string}[],
+    data: UpdateFieldInstanceRequest[],
   ): Promise<EncryptedUserDataRequestValue[]> {
     const wrapperKeys = await this.getWrapperKeys(
       userId,

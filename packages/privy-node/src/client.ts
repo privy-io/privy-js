@@ -27,12 +27,12 @@ import {
   DataKeyBatchResponse,
   DataKeyResponseValue,
 } from './types';
+import {UpdateFieldInstanceRequest} from './model/requests';
 import {FieldInstance, BatchFieldInstances, UserFieldInstances} from './fieldInstance';
 import {formatPrivyError, PrivyClientError} from './errors';
 import encoding, {wrapAsBuffer} from './encoding';
 import {md5} from './hash';
 import {PrivyConfig, SigningFn} from './config';
-import crypto from 'crypto';
 import Handlebars from 'handlebars';
 
 // At the moment, there is only one version of
@@ -195,10 +195,10 @@ export class PrivyClient extends PrivyConfig {
    * @param fields Array of objects with `field` and `value` keys.
    * @returns Array of {@link FieldInstance}s of the updated fields, in the same order as the input.
    */
-  async put(userId: string, fields: {field: string; value: string}[]): Promise<FieldInstance[]>;
+  async put(userId: string, fields: UpdateFieldInstanceRequest[]): Promise<FieldInstance[]>;
   async put(
     userId: string,
-    fields: string | {field: string; value: string}[],
+    fields: string | UpdateFieldInstanceRequest[],
     value?: string,
   ): Promise<FieldInstance | FieldInstance[]> {
     const data = typeof fields === 'string' ? [{field: fields, value: value!}] : fields;
@@ -401,7 +401,7 @@ export class PrivyClient extends PrivyConfig {
 
   private async encrypt(
     userId: string,
-    data: {field: string; value: string}[],
+    data: UpdateFieldInstanceRequest[],
   ): Promise<EncryptedUserDataRequestValue[]> {
     const wrapperKeys = await this.getWrapperKeys(
       userId,
