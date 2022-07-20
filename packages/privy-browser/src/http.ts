@@ -51,6 +51,23 @@ export class Http {
     }
   }
 
+  async delete<T = any, R = AxiosResponse<T>, D = any>(
+    path: string,
+    config?: AxiosRequestConfig<D>,
+  ): Promise<R> {
+    const authenticated = await this.session.isAuthenticated();
+
+    if (!authenticated) {
+      await this.session.authenticate();
+    }
+
+    try {
+      return await axios.delete(path, this.buildConfig(config));
+    } catch (e) {
+      throw wrapApiError(e);
+    }
+  }
+
   private buildConfig(config?: AxiosRequestConfig): AxiosRequestConfig {
     config = config || {};
     config.headers = config.headers || {};
