@@ -6,12 +6,12 @@ const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
 
 // If these are omitted, a new API key pair will be generated using the default dev console login.
-let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
-let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
+let PRIVY_API_KEY = process.env.PRIVY_API_KEY || '';
+let PRIVY_API_SECRET = process.env.PRIVY_API_SECRET || '';
 
 // Convenience function to generate a new API key pair using default dev credentials.
 const fetchAPIKeys = async () => {
-  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+  if (!PRIVY_API_KEY || !PRIVY_API_SECRET) {
     const {
       data: {token},
     } = await axios.post(
@@ -38,8 +38,8 @@ const fetchAPIKeys = async () => {
       },
     );
     console.log('Generated API key pair:', key, ',', secret);
-    PRIVY_API_PUBLIC_KEY = key;
-    PRIVY_API_SECRET_KEY = secret;
+    PRIVY_API_KEY = key;
+    PRIVY_API_SECRET = secret;
   }
 };
 
@@ -60,8 +60,8 @@ describe('Privy client', () => {
       {requester_id: userID, roles: []},
       {
         auth: {
-          username: PRIVY_API_PUBLIC_KEY,
-          password: PRIVY_API_SECRET_KEY,
+          username: PRIVY_API_KEY,
+          password: PRIVY_API_SECRET,
         },
       },
     );
