@@ -1,9 +1,6 @@
 import crypto from 'crypto';
-import {SignJWT} from 'jose';
+import {SignJWT, importJWK, JWK} from 'jose';
 import {AccessTokenClaims} from './model/data';
-
-// https://stackoverflow.com/questions/68668632/convert-node-js-cryptography-code-into-dart#comment121357451_68668632
-const ED25519_PKCS8_PRIVATE_KEY_HEADER = Buffer.from('302e020100300506032b657004220420', 'hex');
 
 const secondsSinceEpoch = (): number => {
   return Math.floor(new Date().getTime() / 1000);
@@ -41,11 +38,17 @@ export const createAccessTokenClaims = (apiKey: string, requesterId: string): Ac
 /**
  * Returns the JWT signing key generated deterministically from the API secret.
  */
-export const jwtKeyFromApiSecret = (apiSecret: string): crypto.KeyObject => {
-  const key = Buffer.concat([ED25519_PKCS8_PRIVATE_KEY_HEADER, Buffer.from(apiSecret, 'base64')]);
-  return crypto.createPrivateKey({
-    key,
-    format: 'der',
-    type: 'pkcs8',
-  });
+export const jwtKeyFromApiSecret = (apiSecret: string): Promise<crypto.KeyObject> => {
+  // Convert raw Ed25519 key buffers into Node crypto KeyObjects.
+  const privateKeyJwk: JWK = {
+    alg: 'EdDSA',
+    crv: 'Ed25519',
+    d: apiSecret,
+    x: '',
+    kty: 'OKP',
+  };
+
+  // In Node.js, the return value is a `KeyObject`.
+  // https://github.com/panva/jose/blob/main/docs/types/types.KeyLike.md
+  return importJWK(privateKeyJwk) as Promise<crypto.KeyObject>;
 };
