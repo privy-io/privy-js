@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import {SignJWT, importJWK, JWK} from 'jose';
+import {SignJWT} from 'jose';
 import {AccessTokenClaims} from './model/data';
 
 const secondsSinceEpoch = (): number => {
@@ -38,17 +38,17 @@ export const createAccessTokenClaims = (apiKey: string, requesterId: string): Ac
 /**
  * Returns the JWT signing key generated deterministically from the API secret.
  */
-export const jwtKeyFromApiSecret = (apiSecret: string): Promise<crypto.KeyObject> => {
+export const jwtKeyFromApiSecret = (apiSecret: string): crypto.KeyObject => {
   // Convert raw Ed25519 key buffers into Node crypto KeyObjects.
-  const privateKeyJwk: JWK = {
-    alg: 'EdDSA',
+  const privateKeyJwk = {
     crv: 'Ed25519',
     d: apiSecret,
     x: '',
     kty: 'OKP',
   };
 
-  // In Node.js, the return value is a `KeyObject`.
-  // https://github.com/panva/jose/blob/main/docs/types/types.KeyLike.md
-  return importJWK(privateKeyJwk) as Promise<crypto.KeyObject>;
+  return crypto.createPrivateKey({
+    key: privateKeyJwk,
+    format: 'jwk',
+  });
 };

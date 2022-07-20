@@ -60,7 +60,7 @@ export type SigningFn = (claims: AccessTokenClaims) => Promise<string>;
 
 const createApiSecretSigningFn = (apiSecret: string): SigningFn => {
   const jwtKey = jwtKeyFromApiSecret(apiSecret);
-  return async (claims: AccessTokenClaims) => signAccessToken(await jwtKey, claims);
+  return (claims: AccessTokenClaims) => signAccessToken(jwtKey, claims);
 };
 
 export class PrivyConfig {
