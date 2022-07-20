@@ -218,6 +218,38 @@ export class PrivyClient extends PrivyConfig {
   }
 
   /**
+   * Delete a field of data for a given user.
+   *
+   * ```typescript
+   * await client.del("0x123", "email");
+   * ```
+   *
+   * @param userId The id of the user.
+   * @param fields The field to delete.
+   */
+  async del(userId: string, fields: string): Promise<void>;
+  /**
+   * Delete multiple fields of data for a given user.
+   *
+   * ```typescript
+   * await client.del("0x123", ["email", "name"]);
+   * ```
+   *
+   * @param userId The id of the user.
+   * @param fields The list of fields to delete.
+   */
+  async del(userId: string, fields: string[]): Promise<void>;
+  async del(userId: string, fields: string | string[]): Promise<void> {
+    const path = userDataPath(userId, wrap(fields));
+    try {
+      await this.api.delete(path);
+      return;
+    } catch (error) {
+      throw formatPrivyError(error);
+    }
+  }
+
+  /**
    * Download a file stored under a field.
    *
    * ```typescript

@@ -35,7 +35,7 @@ describe('Privy client', () => {
     jest.clearAllMocks();
   });
 
-  it('get / put api', async () => {
+  it('get / put / del api', async () => {
     let username: FieldInstance | null, email: FieldInstance | null;
 
     // TODO(#914): Handle null checks such that these tests can be re-run without failing.
@@ -76,6 +76,12 @@ describe('Privy client', () => {
     email = (await client.getByIntegrityHash(integrityHash)) as FieldInstance;
     expect(email.text()).toEqual('tobias@funke.com');
     expect(email.integrity_hash).toEqual(integrityHash);
+
+    await client.del(userID, ['username', 'email']);
+
+    [username, email] = await client.get(userID, ['username', 'email']);
+    expect(username).toBe(null);
+    expect(email).toBe(null);
   });
 
   it('putFile / getFile api', async () => {
