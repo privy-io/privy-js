@@ -8,14 +8,14 @@ const PRIVY_KMS_URL = process.env.PRIVY_KMS_URL || 'http://127.0.0.1:2424/v0';
 const PRIVY_CONSOLE = process.env.PRIVY_CONSOLE || 'http://127.0.0.1:2424/console';
 
 // If these are omitted, a new API key pair will be generated using the default dev console login.
-let PRIVY_API_PUBLIC_KEY = process.env.PRIVY_API_PUBLIC_KEY || '';
-let PRIVY_API_SECRET_KEY = process.env.PRIVY_API_SECRET_KEY || '';
+let PRIVY_API_KEY = process.env.PRIVY_API_KEY || '';
+let PRIVY_API_SECRET = process.env.PRIVY_API_SECRET || '';
 
 beforeAll(async () => {
-  if (!PRIVY_API_PUBLIC_KEY || !PRIVY_API_SECRET_KEY) {
+  if (!PRIVY_API_KEY || !PRIVY_API_SECRET) {
     const keyPair = await fetchAPIKeys(PRIVY_CONSOLE);
-    PRIVY_API_PUBLIC_KEY = keyPair.key;
-    PRIVY_API_SECRET_KEY = keyPair.secret;
+    PRIVY_API_KEY = keyPair.key;
+    PRIVY_API_SECRET = keyPair.secret;
   }
 });
 
@@ -25,7 +25,7 @@ describe('Privy client', () => {
   let client: PrivyClient;
 
   beforeAll(() => {
-    client = new PrivyClient(PRIVY_API_PUBLIC_KEY!, PRIVY_API_SECRET_KEY!, {
+    client = new PrivyClient(PRIVY_API_KEY!, PRIVY_API_SECRET!, {
       apiURL: PRIVY_API_URL,
       kmsURL: PRIVY_KMS_URL,
     });

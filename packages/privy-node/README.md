@@ -89,8 +89,8 @@ Some of the tests are currently expected to be run against a running instance of
 ```
 PRIVY_API_URL=<privy api url>
 PRIVY_KMS_URL=<privy kms url>
-PRIVY_API_PUBLIC_KEY=<your public key>
-PRIVY_API_SECRET_KEY=<your private key>
+PRIVY_API_KEY=<your public key>
+PRIVY_API_SECRET=<your private key>
 ```
 
 To run integration tests:

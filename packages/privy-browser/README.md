@@ -77,8 +77,8 @@ To successfully run tests, you will need to create a `.env` file in the root of 
 ```
 PRIVY_API_URL=<privy api url>
 PRIVY_KMS_URL=<privy kms url>
-PRIVY_API_PUBLIC_KEY=<your public key>
-PRIVY_API_SECRET_KEY=<your private key>
+PRIVY_API_KEY=<your public key>
+PRIVY_API_SECRET=<your private key>
 ```
 
 To run integration tests:
