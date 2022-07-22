@@ -1,3 +1,15 @@
+# 2022-06-15 - 0.0.4
+
+### Misc.
+
+* Publish after reorganizing repo to be mono repo with privy-node and privy-browser.
+
+# 2022-04-29 - 0.0.3
+
+### New functionality
+
+* Support node 14 by adding two internal crypto implementations, one for WebCrypto standard and one for Node std library when WebCrypto is not supported.
+
 # 2022-03-02 - 0.0.2
 
 ### Breaking Changes
